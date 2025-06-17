@@ -1,0 +1,60 @@
+package org.battery.quality.rule.impl.validity;
+
+import org.battery.quality.model.Gb32960Data;
+import org.battery.quality.model.Issue;
+import org.battery.quality.rule.BaseRule;
+import org.battery.quality.model.RuleType;
+import org.battery.quality.rule.annotation.QualityRule;
+
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+/**
+ * 温度数组元素值有效性检查规则
+ */
+@QualityRule(
+    type = "PROBE_TEMPERATURES_ELEMENT_VALIDITY",
+    code = 1015,
+    description = "温度数组存在无效值",
+    category = RuleType.VALIDITY,
+    priority = 3
+)
+public class ProbeTemperaturesElementValidityRule extends BaseRule {
+    
+    private static final int MIN_TEMPERATURE = 0;
+    private static final int MAX_TEMPERATURE = 250; // 单位 ℃ - 40
+
+    @Override
+    public List<Issue> check(Gb32960Data data) {
+        List<Integer> temperatures = data.getProbeTemperatures();
+        if (temperatures == null || temperatures.isEmpty()) {
+            return noIssue();
+        }
+        
+        // 查找无效的温度值及其索引
+        List<String> invalidEntries = IntStream.range(0, temperatures.size())
+                .filter(i -> {
+                    Integer temperature = temperatures.get(i);
+                    return temperature == null || 
+                           temperature < MIN_TEMPERATURE || 
+                           temperature > MAX_TEMPERATURE;
+                })
+                .mapToObj(i -> String.format("[%d]=%s", i, temperatures.get(i)))
+                .collect(Collectors.toList());
+                
+        if (!invalidEntries.isEmpty()) {
+            // 最多展示前10个异常值
+            String invalidValues = String.join(", ", 
+                    invalidEntries.subList(0, Math.min(invalidEntries.size(), 10)));
+            
+            if (invalidEntries.size() > 10) {
+                invalidValues += String.format(" ... (共%d个无效值)", invalidEntries.size());
+            }
+            
+            return singleIssue(data, invalidValues);
+        }
+        
+        return noIssue();
+    }
+} 

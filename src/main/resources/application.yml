@@ -1,34 +1,44 @@
-spring:
-  application:
-    name: data-quality-process
-
+# 应用配置
 kafka:
-  bootstrap.servers: cdh03:6667,cdh04:6667,cdh05:6667,cdh06:6667,cdh07:6667
+  bootstrapServers: cdh03:6667,cdh04:6667,cdh05:6667
   topic: ods-gb-all
-  group.id: data-quality-group
+  groupId: data-quality-group
+  autoOffsetReset: latest
 
-flink:
-  checkpoint:
-    interval: 60000
-    mode: EXACTLY_ONCE
-    timeout: 60000
-    max-concurrent-checkpoints: 1
-    min-pause-between-checkpoints: 10000
+process:
+  parallelism: 1
+  stateRetentionMinutes: 60
+  checkpointInterval: 60000
 
-logging:
-  level:
-    root: INFO
-    org.battery: DEBUG
+mysql:
+  url: jdbc:mysql://10.2.96.179:3306/battery_quality?useSSL=false&serverTimezone=Asia/Shanghai
+  username: root
+  password: Battery@123
+  maxPoolSize: 10
+  minPoolSize: 2
+  connectionTimeout: 30000
+  cacheRefreshInterval: 10
 
-quality:
-  check:
-    weights:
-      completeness: 0.3
-      accuracy: 0.4
-      timeliness: 0.2
-      consistency: 0.2
-      anomaly: 0.3
-    thresholds:
-      overall-score: 80
-      delay-threshold: 300000  # 5分钟，单位毫秒
-      z-score: 3.0 
+# Sink配置
+sink:
+  # 选择使用的Sink类型: doris, print
+  type: print
+
+# Doris配置
+doris:
+  conn: cdh01:8030,cdh02:8030,cdh03:8030
+  user: root
+  passwd: 
+  database: battery_data
+  table: gb32960_data
+  batchSize: 1000
+  batchIntervalMs: 2000
+  maxRetries: 2147483647
+  maxBatchBytes: 1073741824
+
+# 打印Sink配置
+print:
+  # 打印输出的标识符
+  identifier: "质量检查结果"
+  # 是否打印详细信息
+  verbose: true

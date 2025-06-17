@@ -1,0 +1,189 @@
+# 电池数据质量分析系统
+
+## 系统概述
+电池数据质量分析系统是一个基于Apache Flink的流处理应用，用于实时接收、处理和分析GB/T 32960电动汽车国标数据。系统主要功能是对接收到的车辆电池数据进行质量检查，发现数据中的问题并将结果输出到Doris数据库中进行存储和后续分析。
+
+## 系统架构
+
+系统采用典型的流处理架构，主要包含以下组件：
+
+1. **数据源**：Kafka消息队列，接收GB/T 32960格式的车辆数据
+2. **规则源**：MySQL数据库，存储和管理数据质量检查规则
+3. **处理引擎**：Apache Flink，实现流式数据处理
+4. **数据存储**：Apache Doris，存储处理结果和质量问题
+
+系统整体架构如下图所示：
+
+```
+Kafka(GB32960数据) --> Flink处理引擎 --> Doris存储系统
+                   ^
+                   |
+MySQL(规则管理) -----+
+```
+
+## 核心组件说明
+
+### 1. 数据模型
+
+系统主要处理两类数据：
+
+- **Gb32960Data**: 国标32960格式的电池数据实体类
+- **Gb32960DataWithIssues**: 处理后的数据，包含原始数据和检测到的质量问题
+- **Issue**: 表示数据质量异常的详细信息
+
+### 2. 数据质量规则
+
+系统支持多种类型的数据质量规则检查：
+
+- **完整性规则 (Completeness)**: 检查数据是否完整，例如缺少必要的字段
+- **一致性规则 (Consistency)**: 检查数据内部是否一致，例如数组长度与声明的计数是否一致
+- **时效性规则 (Timeliness)**: 检查数据的时间属性，例如数据延迟、时间戳单调性
+- **有效性规则 (Validity)**: 检查数据值是否在合法范围内，例如SOC、电压、温度等
+
+规则通过注解方式定义，支持动态加载和配置。
+
+### 3. 处理流程
+
+1. 从Kafka读取GB/T 32960数据
+2. 从MySQL读取并广播规则配置
+3. 对数据应用质量规则检查
+4. 标记质量问题并输出结果到Doris
+
+### 4. Sink抽象
+
+系统使用Sink接口抽象数据输出逻辑，通过SinkFactory创建适当的Sink实现。目前支持以下Sink类型：
+
+- **DorisSink**: 将数据写入Doris数据库
+- **PrintSink**: 将数据打印到控制台，支持简洁和详细两种模式
+- **MultipleSink**: 将数据同时发送到多个Sink（例如同时写入数据库并打印到控制台）
+
+Sink接口设计为返回SinkFunction，便于与Flink的流处理API集成。可通过配置参数`sink.type`选择不同的Sink类型：
+- `doris`: 使用DorisSink (默认)
+- `print`: 使用PrintSink
+- `both`: 同时使用DorisSink和PrintSink
+
+对于PrintSink，可通过以下参数进行配置：
+- `print.identifier`: 输出标识符，默认为"质量检查结果"
+- `print.verbose`: 是否打印详细信息，默认为false
+
+## 配置说明
+
+系统配置通过application.yml文件提供，主要包含：
+
+- **Kafka配置**: 连接信息、消费组、主题等
+- **处理配置**: 并行度、状态保留时间、检查点间隔等
+- **MySQL配置**: 数据库连接信息、连接池配置等
+- **Doris配置**: 连接信息、批处理大小、批处理间隔等
+- **Sink配置**: Sink类型及其特定配置
+
+## 部署与运行
+
+### 环境要求
+
+- Java 8+
+- Apache Flink 1.13+
+- Apache Kafka
+- MySQL 5.7+
+- Apache Doris
+
+### 编译部署
+
+```bash
+# 编译
+mvn clean package
+
+# 运行
+flink run -c org.battery.DataQualityApplication target/data-quality-process-1.0-SNAPSHOT.jar
+```
+
+## Doris建表语句
+
+```sql
+-- 创建数据库
+CREATE DATABASE IF NOT EXISTS battery_data;
+
+-- 创建单一的数据表，包含原始数据和质量问题信息
+CREATE TABLE battery_data.gb32960_data (
+    vin STRING,
+    vehicleFactory STRING,
+    year INT,
+    month INT,
+    day INT,
+    hours INT,
+    minutes INT,
+    seconds INT,
+    time BIGINT,
+    ctime BIGINT,
+    vehicleStatus INT,
+    chargeStatus INT,
+    speed INT,
+    mileage INT,
+    totalVoltage INT,
+    totalCurrent INT,
+    soc INT,
+    dcStatus INT,
+    gears INT,
+    insulationResistance INT,
+    operationMode INT,
+    batteryCount INT,
+    batteryNumber INT,
+    cellCount INT,
+    maxVoltagebatteryNum INT,
+    maxVoltageSystemNum INT,
+    batteryMaxVoltage INT,
+    minVoltagebatteryNum INT,
+    minVoltageSystemNum INT,
+    batteryMinVoltage INT,
+    maxTemperature INT,
+    maxTemperatureNum INT,
+    maxTemperatureSystemNum INT,
+    minTemperature INT,
+    minTemperatureNum INT,
+    minTemperatureSystemNum INT,
+    subsystemVoltageCount INT,
+    subsystemVoltageDataNum INT,
+    subsystemTemperatureCount INT,
+    subsystemTemperatureDataNum INT,
+    temperatureProbeCount INT,
+    longitude BIGINT,
+    latitude BIGINT,
+    customField STRING,
+    cellVoltages ARRAY<INT>,
+    probeTemperatures ARRAY<INT>,
+    deviceFailuresCodes ARRAY<INT>,
+    driveMotorFailuresCodes ARRAY<INT>,
+    issues ARRAY<STRING> REPLACE, -- JSON格式的质量问题列表
+    issues_count INT -- 数据质量问题总数
+) 
+DUPLICATE KEY(vin, ctime)
+DISTRIBUTED BY HASH(vin) BUCKETS 32
+DISTRIBUTED BY HASH(`vin`) BUCKETS AUTO
+PROPERTIES (
+"replication_allocation" = "tag.location.offline: 1",
+"min_load_replica_num" = "-1",
+"bloom_filter_columns" = "ctime",
+"is_being_synced" = "false",
+"dynamic_partition.enable" = "true",
+"dynamic_partition.time_unit" = "DAY",
+"dynamic_partition.time_zone" = "Asia/Shanghai",
+"dynamic_partition.start" = "-90",
+"dynamic_partition.end" = "2",
+"dynamic_partition.prefix" = "p",
+"dynamic_partition.replication_allocation" = "tag.location.offline: 1",
+"dynamic_partition.buckets" = "10",
+"dynamic_partition.create_history_partition" = "false",
+"dynamic_partition.history_partition_num" = "-1",
+"dynamic_partition.hot_partition_num" = "0",
+"dynamic_partition.reserved_history_periods" = "NULL",
+"dynamic_partition.storage_policy" = "",
+"storage_medium" = "hdd",
+"storage_format" = "V2",
+"inverted_index_storage_format" = "V1",
+"compression" = "ZSTD",
+"light_schema_change" = "true",
+"disable_auto_compaction" = "false",
+"enable_single_replica_compaction" = "false",
+"group_commit_interval_ms" = "10000",
+"group_commit_data_bytes" = "134217728"
+);;
+```
