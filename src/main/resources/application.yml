@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: data-quality-process
+
+kafka:
+  bootstrap.servers: cdh03:6667,cdh04:6667,cdh05:6667,cdh06:6667,cdh07:6667
+  topic: ods-gb-all
+  group.id: data-quality-group
+
+flink:
+  checkpoint:
+    interval: 60000
+    mode: EXACTLY_ONCE
+    timeout: 60000
+    max-concurrent-checkpoints: 1
+    min-pause-between-checkpoints: 10000
+
+logging:
+  level:
+    root: INFO
+    org.battery: DEBUG
+
+quality:
+  check:
+    weights:
+      completeness: 0.3
+      accuracy: 0.4
+      timeliness: 0.2
+      consistency: 0.2
+      anomaly: 0.3
+    thresholds:
+      overall-score: 80
+      delay-threshold: 300000  # 5分钟，单位毫秒
+      z-score: 3.0 
