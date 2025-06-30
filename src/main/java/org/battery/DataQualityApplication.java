@@ -69,7 +69,7 @@ public class DataQualityApplication {
                 .setTopics(appConfig.getKafka().getTopic())
                 .setGroupId(appConfig.getKafka().getGroupId())
                 .setStartingOffsets(OffsetsInitializer.latest())
-                .setValueOnlyDeserializer(new Gb32960DeserializationSchema())
+                .setDeserializer(new Gb32960DeserializationSchema())
                 .build();
 
         // 创建数据流

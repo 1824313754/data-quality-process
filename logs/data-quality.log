@@ -1342,3 +1342,65 @@
 2025-06-30 09:40:14.858 [Rule-Processor -> Sink: Data-Quality-Sink (1/1)#0] INFO  o.b.q.p.BroadcastRuleProcessor - 规则广播状态更新完成，当前共有规则 25 个，规则实例缓存 25 个
 2025-06-30 09:40:17.222 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 从数据库加载了 25 个规则信息
 2025-06-30 09:40:17.223 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则无变更，跳过广播
+2025-06-30 13:49:58.992 [main] INFO  org.battery.DataQualityApplication - 启动电池数据质量分析系统...
+2025-06-30 13:49:59.282 [main] INFO  o.b.quality.config.AppConfigLoader - 成功加载应用配置
+2025-06-30 13:49:59.529 [main] INFO  org.battery.DataQualityApplication - 规则广播流创建完成
+2025-06-30 13:49:59.648 [main] INFO  org.battery.quality.sink.SinkFactory - 创建Sink: type=print
+2025-06-30 13:49:59.650 [main] INFO  org.battery.quality.sink.PrintSink - 配置PrintSink: identifier=质量检查结果, verbose=true
+2025-06-30 13:50:00.602 [flink-akka.actor.default-dispatcher-2] INFO  akka.event.slf4j.Slf4jLogger - Slf4jLogger started
+2025-06-30 13:50:00.755 [flink-metrics-2] INFO  akka.event.slf4j.Slf4jLogger - Slf4jLogger started
+2025-06-30 13:50:01.744 [main] WARN  o.a.f.r.webmonitor.WebMonitorUtils - Log file environment variable 'log.file' is not set.
+2025-06-30 13:50:01.744 [main] WARN  o.a.f.r.webmonitor.WebMonitorUtils - JobManager log files are unavailable in the web dashboard. Log file location not found in environment variable 'log.file' or configuration key 'web.log.path'.
+2025-06-30 13:50:03.258 [SourceCoordinator-Source: Kafka Source] WARN  o.a.k.c.consumer.ConsumerConfig - The configuration 'client.id.prefix' was supplied but isn't a known config.
+2025-06-30 13:50:03.258 [SourceCoordinator-Source: Kafka Source] WARN  o.a.k.c.consumer.ConsumerConfig - The configuration 'partition.discovery.interval.ms' was supplied but isn't a known config.
+2025-06-30 13:50:03.347 [SourceCoordinator-Source: Kafka Source] WARN  o.a.k.c.admin.AdminClientConfig - The configuration 'key.deserializer' was supplied but isn't a known config.
+2025-06-30 13:50:03.347 [SourceCoordinator-Source: Kafka Source] WARN  o.a.k.c.admin.AdminClientConfig - The configuration 'value.deserializer' was supplied but isn't a known config.
+2025-06-30 13:50:03.347 [SourceCoordinator-Source: Kafka Source] WARN  o.a.k.c.admin.AdminClientConfig - The configuration 'enable.auto.commit' was supplied but isn't a known config.
+2025-06-30 13:50:03.347 [SourceCoordinator-Source: Kafka Source] WARN  o.a.k.c.admin.AdminClientConfig - The configuration 'group.id' was supplied but isn't a known config.
+2025-06-30 13:50:03.347 [SourceCoordinator-Source: Kafka Source] WARN  o.a.k.c.admin.AdminClientConfig - The configuration 'client.id.prefix' was supplied but isn't a known config.
+2025-06-30 13:50:03.347 [SourceCoordinator-Source: Kafka Source] WARN  o.a.k.c.admin.AdminClientConfig - The configuration 'partition.discovery.interval.ms' was supplied but isn't a known config.
+2025-06-30 13:50:03.347 [SourceCoordinator-Source: Kafka Source] WARN  o.a.k.c.admin.AdminClientConfig - The configuration 'auto.offset.reset' was supplied but isn't a known config.
+2025-06-30 13:50:03.577 [Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.quality.config.AppConfigLoader - 成功加载应用配置
+2025-06-30 13:50:03.580 [Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.quality.config.DatabaseManager - 初始化数据库连接池: jdbc:mysql://10.2.96.179:3306/battery_quality?useSSL=false&serverTimezone=Asia/Shanghai
+2025-06-30 13:50:03.600 [Source: Rule-Broadcast-Source (1/1)#0] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2025-06-30 13:50:03.722 [Rule-Processor -> Sink: Data-Quality-Sink (1/1)#0] INFO  o.b.quality.config.AppConfigLoader - 成功加载应用配置
+2025-06-30 13:50:03.723 [Rule-Processor -> Sink: Data-Quality-Sink (1/1)#0] INFO  o.b.quality.config.DatabaseManager - 初始化数据库连接池: jdbc:mysql://10.2.96.179:3306/battery_quality?useSSL=false&serverTimezone=Asia/Shanghai
+2025-06-30 13:50:03.723 [Rule-Processor -> Sink: Data-Quality-Sink (1/1)#0] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-2 - Starting...
+2025-06-30 13:50:04.402 [Source: Rule-Broadcast-Source (1/1)#0] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2025-06-30 13:50:04.402 [Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.quality.config.DatabaseManager - 数据库连接池初始化成功
+2025-06-30 13:50:04.404 [Rule-Processor -> Sink: Data-Quality-Sink (1/1)#0] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-2 - Start completed.
+2025-06-30 13:50:04.404 [Rule-Processor -> Sink: Data-Quality-Sink (1/1)#0] INFO  o.b.quality.config.DatabaseManager - 数据库连接池初始化成功
+2025-06-30 13:50:04.404 [Rule-Processor -> Sink: Data-Quality-Sink (1/1)#0] INFO  o.b.q.p.BroadcastRuleProcessor - 广播规则处理器初始化完成
+2025-06-30 13:50:04.412 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则广播源启动，检查间隔: 10000毫秒
+2025-06-30 13:50:04.638 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 CELL_VOLTAGES_LENGTH_CONSISTENCY 首次获取MD5: 3e3b813c5d8f7ca67f0a7721d39ae37e, 版本: 1
+2025-06-30 13:50:04.639 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 CELL_VOLTAGES_MISSING 首次获取MD5: e613679b82cfc877c5d3c5a21fcc6ca8, 版本: 1
+2025-06-30 13:50:04.639 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 CHARGE_STATUS_CONSISTENCY 首次获取MD5: e3c8c5c1f61e0dc251f6259e21e9fcff, 版本: 1
+2025-06-30 13:50:04.640 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 CHARGE_STATUS_VALIDITY 首次获取MD5: 2565482ef51679e9ac64b2e99c406aa0, 版本: 1
+2025-06-30 13:50:04.640 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 COLLECTION_TIME_VALIDITY 首次获取MD5: 19a3164e4b93a61e22625bfca8e257b8, 版本: 1
+2025-06-30 13:50:04.640 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 COORDINATES_MISSING 首次获取MD5: 5cbb9c152192a5780a69e402aa725003, 版本: 1
+2025-06-30 13:50:04.640 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 DATA_AHEAD 首次获取MD5: 3ba42a756d557d70017063a45d5995b6, 版本: 1
+2025-06-30 13:50:04.640 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 DATA_DELAY 首次获取MD5: aeb386211ba0a6dcddc18b76b2dbae6f, 版本: 1
+2025-06-30 13:50:04.640 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 DC_STATUS_VALIDITY 首次获取MD5: 96f27ef7c529b915beec4fdbf19b6859, 版本: 1
+2025-06-30 13:50:04.640 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 INSULATION_RESISTANCE_VALIDITY 首次获取MD5: bd09b3560177a63269e91b364e756a3c, 版本: 1
+2025-06-30 13:50:04.640 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 MAX_TEMPERATURE_VALIDITY 首次获取MD5: 67e00367b7f3370a0b1269c00cbb14ef, 版本: 1
+2025-06-30 13:50:04.640 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 MAX_VOLTAGE_VALIDITY 首次获取MD5: 9b386beae1c5e95014a4bd7100ba6801, 版本: 1
+2025-06-30 13:50:04.641 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 MILEAGE_VALIDITY 首次获取MD5: 773af1eea0886f535a3af7d419c74b8c, 版本: 1
+2025-06-30 13:50:04.641 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 MIN_TEMPERATURE_VALIDITY 首次获取MD5: 6a5573a028a139ee3b8cf1f17b5fbcde, 版本: 1
+2025-06-30 13:50:04.641 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 MIN_VOLTAGE_VALIDITY 首次获取MD5: b23c2e5ec6280362cc50482402daffc7, 版本: 1
+2025-06-30 13:50:04.641 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 PROBE_TEMPERATURES_ELEMENT_VALIDITY 首次获取MD5: f8036cc926c52fc2fd29c58cbe8ecc98, 版本: 1
+2025-06-30 13:50:04.641 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 PROBE_TEMPERATURES_LENGTH_CONSISTENCY 首次获取MD5: 71a67888b353987a3e35de842c461d6e, 版本: 1
+2025-06-30 13:50:04.641 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 PROBE_TEMPERATURES_MISSING 首次获取MD5: b2edaa8aeb0b525479eaa5470fcde975, 版本: 1
+2025-06-30 13:50:04.641 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 SAMPLING_INTERVAL_CONSISTENCY 首次获取MD5: 537cdd6cfc0813877d7a8204705e7ff4, 版本: 1
+2025-06-30 13:50:04.641 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 SOC_VALIDITY 首次获取MD5: 53724406fb38d8044e38f937d63a9840, 版本: 1
+2025-06-30 13:50:04.641 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 SPEED_VALIDITY 首次获取MD5: 951f7b98349a2141a2cc5259e15ceaca, 版本: 1
+2025-06-30 13:50:04.641 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 TIMESTAMP_MONOTONICITY 首次获取MD5: d5ea12e64c2dae20c7f54409c2e4b977, 版本: 1
+2025-06-30 13:50:04.641 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 TOTAL_CURRENT_VALIDITY 首次获取MD5: 7c07aac74a9db459c8ead265e2b6b457, 版本: 1
+2025-06-30 13:50:04.642 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 TOTAL_VOLTAGE_VALIDITY 首次获取MD5: 74a92438772bbb047160bd923f8e096e, 版本: 1
+2025-06-30 13:50:04.642 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 规则 VEHICLE_STATUS_VALIDITY 首次获取MD5: 5a9fced67d9981f6013c5624659f0b14, 版本: 1
+2025-06-30 13:50:04.648 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 检测到规则变更，清除规则缓存
+2025-06-30 13:50:04.651 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  org.battery.quality.rule.RuleManager - 规则缓存已清除
+2025-06-30 13:50:04.651 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 从数据库加载了 25 个规则信息
+2025-06-30 13:50:04.652 [Legacy Source Thread - Source: Rule-Broadcast-Source (1/1)#0] INFO  o.b.q.source.RuleBroadcastSource - 首次加载，广播所有 25 个规则
+2025-06-30 13:50:04.870 [Source: Kafka Source (1/1)#0] WARN  o.a.k.c.consumer.ConsumerConfig - The configuration 'client.id.prefix' was supplied but isn't a known config.
+2025-06-30 13:50:04.870 [Source: Kafka Source (1/1)#0] WARN  o.a.k.c.consumer.ConsumerConfig - The configuration 'partition.discovery.interval.ms' was supplied but isn't a known config.
+2025-06-30 13:50:05.389 [Rule-Processor -> Sink: Data-Quality-Sink (1/1)#0] INFO  o.b.q.p.BroadcastRuleProcessor - 收到规则广播更新，变更规则数量: 25
