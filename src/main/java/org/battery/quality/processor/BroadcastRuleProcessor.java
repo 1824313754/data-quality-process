@@ -286,11 +286,17 @@ public class BroadcastRuleProcessor extends KeyedBroadcastProcessFunction<
             }
         }
         
+        // 按优先级从高到低排序规则（优先级值越大越优先执行）
+        rules.sort((r1, r2) -> Integer.compare(r2.getPriority(), r1.getPriority()));
+        
+        // 按优先级从高到低排序状态规则
+        stateRules.sort((r1, r2) -> Integer.compare(r2.getPriority(), r1.getPriority()));
+        
         // 缓存规则列表
         factoryRulesCache.put(factoryId, rules);
         factoryStateRulesCache.put(factoryId, stateRules);
         
-        LOGGER.debug("为车厂 {} 构建规则缓存，普通规则: {}, 状态规则: {}", 
+        LOGGER.debug("为车厂 {} 构建规则缓存，普通规则: {}, 状态规则: {}，已按优先级排序", 
                 factoryId, rules.size(), stateRules.size());
     }
 } 

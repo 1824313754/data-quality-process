@@ -25,12 +25,13 @@ public class DataAheadRule extends BaseRule {
     @Override
     public List<Issue> check(Gb32960Data data) {
         Long ctime = data.getCtime();
-        if (ctime == null) {
+        Long time = data.getTime();
+        
+        if (ctime == null || time == null) {
             return noIssue();
         }
         
-        long systemTime = System.currentTimeMillis();
-        long diff = systemTime - ctime;
+        long diff = time - ctime;
         
         // 如果时间差小于-1分钟（数据时间超前系统时间1分钟以上）
         if (diff < MIN_AHEAD_MS) {

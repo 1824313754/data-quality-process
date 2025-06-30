@@ -17,7 +17,7 @@ mysql:
   maxPoolSize: 10
   minPoolSize: 2
   connectionTimeout: 30000
-  cacheRefreshInterval: 10
+  cacheRefreshInterval: 300
 
 # Sink配置
 sink:

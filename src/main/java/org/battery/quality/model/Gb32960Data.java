@@ -104,57 +104,13 @@ public class Gb32960Data implements Serializable {
         return totalCurrent == null ? null : totalCurrent - 10000;
     }
     
-    public long computeCtime() {
-        int fullYear = (year < 100) ? (2000 + year) : year;
-        LocalDateTime dateTime = LocalDateTime.of(fullYear, month, day, hours, minutes, seconds);
-        return dateTime.toInstant(ZoneOffset.UTC).toEpochMilli();
-    }
-    
-    public void setSeconds(Integer seconds) {
-        this.seconds = seconds;
-        updateCtimeIfReady();
-    }
 
-    public void setMinutes(Integer minutes) {
-        this.minutes = minutes;
-        updateCtimeIfReady();
-    }
-
-    public void setHours(Integer hours) {
-        this.hours = hours;
-        updateCtimeIfReady();
-    }
-
-    public void setDay(Integer day) {
-        this.day = day;
-        updateCtimeIfReady();
-    }
-
-    public void setMonth(Integer month) {
-        this.month = month;
-        updateCtimeIfReady();
-    }
-
-    public void setYear(Integer year) {
-        this.year = year;
-        updateCtimeIfReady();
-    }
-
-    private void updateCtimeIfReady() {
-        if (year != null && month != null && day != null && hours != null && minutes != null && seconds != null) {
-            this.ctime = computeCtime();
-        }
-    }
 
     public void setTotalCurrent(Integer totalCurrent) {
         this.totalCurrent = totalCurrent;
         this.totalCurrent = computeTotalCurrent();
     }
-    
-    public void setCtime(Long ctime) {
-        this.ctime = ctime;
-        this.ctime = computeCtime();
-    }
+
     
     public void setCurrent(Integer current) {
         this.current = current;

@@ -37,6 +37,8 @@ public class Gb32960DeserializationSchema implements KafkaRecordDeserializationS
             if (data != null) {
                 // 设置time字段为Kafka消息的时间戳
                 data.setTime(record.timestamp());
+                
+                // 收集数据
                 out.collect(data);
             }
         } catch (Exception e) {

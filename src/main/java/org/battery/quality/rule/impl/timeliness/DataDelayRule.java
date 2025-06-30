@@ -25,12 +25,13 @@ public class DataDelayRule extends BaseRule {
     @Override
     public List<Issue> check(Gb32960Data data) {
         Long ctime = data.getCtime();
-        if (ctime == null) {
+        Long time = data.getTime();
+        
+        if (ctime == null || time == null) {
             return noIssue();
         }
         
-        long systemTime = System.currentTimeMillis();
-        long delay = systemTime - ctime;
+        long delay = time - ctime;
         
         if (delay > MAX_DELAY_MS) {
             return singleIssue(data, 
