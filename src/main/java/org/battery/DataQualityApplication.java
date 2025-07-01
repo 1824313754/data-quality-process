@@ -1,6 +1,8 @@
 package org.battery;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.utils.ParameterTool;
@@ -18,6 +20,7 @@ import org.battery.quality.model.RuleInfo;
 import org.battery.quality.sink.SinkFactory;
 import org.battery.quality.source.RuleBroadcastSource;
 import org.battery.quality.source.Gb32960DeserializationSchema;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,9 +87,24 @@ public class DataQualityApplication {
                 .connect(ruleBroadcastStream)
                 .process(new BroadcastRuleProcessor(ruleStateDescriptor))
                 .name("Rule-Processor");
+        DataStream<String> jsonStream = resultsStream.map(new MapFunction<Gb32960DataWithIssues, String>() {
+            private final ObjectMapper mapper = new ObjectMapper();
+            @Override
+            public String map(Gb32960DataWithIssues value) throws Exception {
+                // 将对象序列化成 JsonNode 树
+                JsonNode root = mapper.valueToTree(value);
+                JsonNode dataNode = root.get("data");
 
+                // 判断 null
+                if (dataNode == null || dataNode.isNull()) {
+                    throw new RuntimeException("Missing `data` field in Gb32960DataWithIssues");
+                }
+
+                // 将 data 节点单独序列化为字符串
+                return mapper.writeValueAsString(dataNode);            }
+        });
         // 使用SinkFactory创建的Sink将结果写入存储
-        resultsStream.addSink(SinkFactory.createSink(parameterTool))
+        jsonStream.addSink(SinkFactory.createSink(parameterTool))
                 .name("Data-Quality-Sink");
 
         // 执行任务

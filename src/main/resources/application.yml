@@ -22,17 +22,17 @@ mysql:
 # Sink配置
 sink:
   # 选择使用的Sink类型: doris, print
-  type: print
+  type: doris
 
 # Doris配置
 doris:
-  conn: cdh01:8030,cdh02:8030,cdh03:8030
+  conn: 10.2.96.62:8030
   user: root
-  passwd: 
-  database: battery_data
-  table: gb32960_data
-  batchSize: 1000
-  batchIntervalMs: 2000
+  passwd: gotion@2025
+  database: battery_ods
+  table: error_data
+  batchSize: 1
+  batchIntervalMs: 0
   maxRetries: 2147483647
   maxBatchBytes: 1073741824
 

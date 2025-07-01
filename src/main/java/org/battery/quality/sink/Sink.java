@@ -16,5 +16,5 @@ public interface Sink {
      * @param parameterTool 参数工具
      * @return 可用于将数据写入目标存储的SinkFunction
      */
-    SinkFunction<Gb32960DataWithIssues> getSinkFunction(ParameterTool parameterTool);
+    SinkFunction<String> getSinkFunction(ParameterTool parameterTool);
 } 
