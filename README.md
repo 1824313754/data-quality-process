@@ -105,60 +105,54 @@ flink run -c org.battery.DataQualityApplication target/data-quality-process-1.0-
 CREATE DATABASE IF NOT EXISTS battery_data;
 
 -- 创建单一的数据表，包含原始数据和质量问题信息
-CREATE TABLE battery_data.gb32960_data (
-    vin STRING,
-    vehicleFactory STRING,
-    year INT,
-    month INT,
-    day INT,
-    hours INT,
-    minutes INT,
-    seconds INT,
-    time BIGINT,
-    ctime BIGINT,
-    vehicleStatus INT,
-    chargeStatus INT,
-    speed INT,
-    mileage INT,
-    totalVoltage INT,
-    totalCurrent INT,
-    soc INT,
-    dcStatus INT,
-    gears INT,
-    insulationResistance INT,
-    operationMode INT,
-    batteryCount INT,
-    batteryNumber INT,
-    cellCount INT,
-    maxVoltagebatteryNum INT,
-    maxVoltageSystemNum INT,
-    batteryMaxVoltage INT,
-    minVoltagebatteryNum INT,
-    minVoltageSystemNum INT,
-    batteryMinVoltage INT,
-    maxTemperature INT,
-    maxTemperatureNum INT,
-    maxTemperatureSystemNum INT,
-    minTemperature INT,
-    minTemperatureNum INT,
-    minTemperatureSystemNum INT,
-    subsystemVoltageCount INT,
-    subsystemVoltageDataNum INT,
-    subsystemTemperatureCount INT,
-    subsystemTemperatureDataNum INT,
-    temperatureProbeCount INT,
-    longitude BIGINT,
-    latitude BIGINT,
-    customField STRING,
-    cellVoltages ARRAY<INT>,
-    probeTemperatures ARRAY<INT>,
-    deviceFailuresCodes ARRAY<INT>,
-    driveMotorFailuresCodes ARRAY<INT>,
-    issues ARRAY<STRING> REPLACE, -- JSON格式的质量问题列表
-    issues_count INT -- 数据质量问题总数
-) 
-DUPLICATE KEY(vin, ctime)
-DISTRIBUTED BY HASH(vin) BUCKETS 32
+CREATE TABLE battery_ods.error_data (
+                                        vin varchar(255),
+                                        ctime datetime,
+                                        time datetime,
+                                        vehicleFactory varchar(255),
+                                        vehicleStatus INT,
+                                        chargeStatus INT,
+                                        speed INT,
+                                        mileage INT,
+                                        totalVoltage INT,
+                                        totalCurrent INT,
+                                        soc INT,
+                                        dcStatus INT,
+                                        gears INT,
+                                        insulationResistance INT,
+                                        operationMode INT,
+                                        batteryCount INT,
+                                        batteryNumber INT,
+                                        cellCount INT,
+                                        maxVoltagebatteryNum INT,
+                                        maxVoltageSystemNum INT,
+                                        batteryMaxVoltage INT,
+                                        minVoltagebatteryNum INT,
+                                        minVoltageSystemNum INT,
+                                        batteryMinVoltage INT,
+                                        maxTemperature INT,
+                                        maxTemperatureNum INT,
+                                        maxTemperatureSystemNum INT,
+                                        minTemperature INT,
+                                        minTemperatureNum INT,
+                                        minTemperatureSystemNum INT,
+                                        subsystemVoltageCount INT,
+                                        subsystemVoltageDataNum INT,
+                                        subsystemTemperatureCount INT,
+                                        subsystemTemperatureDataNum INT,
+                                        temperatureProbeCount INT,
+                                        longitude BIGINT,
+                                        latitude BIGINT,
+                                        customField String,
+                                        cellVoltages array<int>,
+                                        probeTemperatures array<int>,
+                                        deviceFailuresCodes array<int>,
+                                        driveMotorFailuresCodes array<int>,
+                                        issues ARRAY<String> , -- JSON格式的质量问题列表
+                                        issues_count INT -- 数据质量问题总数
+)
+    DUPLICATE KEY(vin, ctime)
+PARTITION BY RANGE(time)()
 DISTRIBUTED BY HASH(`vin`) BUCKETS AUTO
 PROPERTIES (
 "replication_allocation" = "tag.location.offline: 1",
@@ -175,7 +169,6 @@ PROPERTIES (
 "dynamic_partition.buckets" = "10",
 "dynamic_partition.create_history_partition" = "false",
 "dynamic_partition.history_partition_num" = "-1",
-"dynamic_partition.hot_partition_num" = "0",
 "dynamic_partition.reserved_history_periods" = "NULL",
 "dynamic_partition.storage_policy" = "",
 "storage_medium" = "hdd",
@@ -187,7 +180,7 @@ PROPERTIES (
 "enable_single_replica_compaction" = "false",
 "group_commit_interval_ms" = "10000",
 "group_commit_data_bytes" = "134217728"
-);;
+);
 ```
 
 ## 最近更新
@@ -209,5 +202,4 @@ PROPERTIES (
    - 提高了数据的可读性
    - 允许以更自然的方式查询和过滤数据
    - 保持了时间计算的准确性
-
 此更新使得数据在显示和存储时更加直观，便于阅读和理解，同时通过在规则内部解析时间戳的方式保证了计算的准确性。
