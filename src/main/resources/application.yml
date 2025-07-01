@@ -31,8 +31,8 @@ doris:
   passwd: gotion@2025
   database: battery_ods
   table: error_data
-  batchSize: 1
-  batchIntervalMs: 0
+  batchSize: 1000
+  batchIntervalMs: 10000
   maxRetries: 2147483647
   maxBatchBytes: 1073741824
 

@@ -2,37 +2,29 @@ package org.battery.quality.rule.impl.validity;
 
 import org.battery.quality.model.Gb32960Data;
 import org.battery.quality.model.Issue;
+import org.battery.quality.rule.template.AbstractRule;
 import org.battery.quality.model.RuleType;
-import org.battery.quality.rule.BaseRule;
 import org.battery.quality.rule.annotation.QualityRule;
 
 import java.time.DateTimeException;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
- * 时间字段有效性检查规则
- * 检查year、month、day、hours、minutes、seconds等字段是否有效且可以构成一个合法的时间
+ * 日期时间字段有效性检查规则
  */
 @QualityRule(
-        type = "COLLECTION_TIME_VALIDITY",
-        code = 1014,
-        description = "采集时间无效",
-        category = RuleType.VALIDITY,
-        priority = 20
+    type = "DATE_TIME_FIELDS_VALIDITY",
+    code = 1014,
+    description = "日期时间字段无效",
+    category = RuleType.VALIDITY,
+    priority = 10
 )
-public class DateTimeFieldsValidityRule extends BaseRule {
+public class DateTimeFieldsValidityRule extends AbstractRule {
 
     @Override
-    public List<Issue> check(Gb32960Data data) {
-        List<Issue> issues = new ArrayList<>();
-        // 不再尝试将时间字符串转换为时间戳
-        String timeStr = data.getTime();
-        
-        // 检查时间字段的值是否在有效范围内
+    protected List<Issue> doCheck(Gb32960Data data) {
         Integer year = data.getYear();
         Integer month = data.getMonth();
         Integer day = data.getDay();
@@ -40,98 +32,47 @@ public class DateTimeFieldsValidityRule extends BaseRule {
         Integer minutes = data.getMinutes();
         Integer seconds = data.getSeconds();
         
-        // 检查所有字段的有效性
-        if ((!isValidRange(year, 0, 99)) ||
-            !isValidRange(month, 1, 12) ||
-            !isValidRange(day, 1, 31) ||
-            !isValidRange(hours, 0, 23) ||
-            !isValidRange(minutes, 0, 59) ||
-            !isValidRange(seconds, 0, 59)) {
-            
-            StringBuilder invalidFields = new StringBuilder();
-            
-            if (!isValidRange(year, 0, 99)) {
-                invalidFields.append("年份值无效: ").append(year).append("; ");
-            }
-            if (!isValidRange(month, 1, 12)) {
-                invalidFields.append("月份值无效: ").append(month).append("; ");
-            }
-            if (!isValidRange(day, 1, 31)) {
-                invalidFields.append("日期值无效: ").append(day).append("; ");
-            }
-            if (!isValidRange(hours, 0, 23)) {
-                invalidFields.append("小时值无效: ").append(hours).append("; ");
-            }
-            if (!isValidRange(minutes, 0, 59)) {
-                invalidFields.append("分钟值无效: ").append(minutes).append("; ");
-            }
-            if (!isValidRange(seconds, 0, 59)) {
-                invalidFields.append("秒钟值无效: ").append(seconds).append("; ");
-            }
-            
-            issues.add(Issue.builder()
-                .vin(data.getVin())
-                .code(getCode())
-                .type(getType())
-                .description("时间字段值无效: " + invalidFields)
-                .timestamp(null) // 设置为null，避免类型转换问题
-                .build());
-            
-            // 使用当前时间作为ctime
-            data.setCtime(getCurrentTimeAsString());
-            return issues;
+        List<String> invalidFields = new ArrayList<>();
+        
+        // 检查各个时间字段是否在有效范围内
+        if (year == null || year < 2000 || year > 2100) {
+            invalidFields.add(String.format("年份(%s)", year));
         }
-
-        int fullYear = (year < 100) ? (2000 + year) : year;
+        
+        if (month == null || month < 1 || month > 12) {
+            invalidFields.add(String.format("月份(%s)", month));
+        }
+        
+        if (day == null || day < 1 || day > 31) {
+            invalidFields.add(String.format("日期(%s)", day));
+        }
+        
+        if (hours == null || hours < 0 || hours > 23) {
+            invalidFields.add(String.format("小时(%s)", hours));
+        }
+        
+        if (minutes == null || minutes < 0 || minutes > 59) {
+            invalidFields.add(String.format("分钟(%s)", minutes));
+        }
+        
+        if (seconds == null || seconds < 0 || seconds > 59) {
+            invalidFields.add(String.format("秒(%s)", seconds));
+        }
+        
+        // 如果有字段无效，则返回问题
+        if (!invalidFields.isEmpty()) {
+            return singleIssue(data, String.join(", ", invalidFields));
+        }
+        
+        // 检查日期是否合法（如2月30日）
         try {
-            LocalDateTime dateTime = LocalDateTime.of(fullYear, month, day, hours, minutes, seconds);
-            
-            // 计算并设置ctime，直接格式化为字符串
-            data.setCtime(String.format("%04d-%02d-%02d %02d:%02d:%02d", 
-                fullYear, month, day, hours, minutes, seconds));
-            
-        } catch (Exception e) {
-            issues.add(Issue.builder()
-                .vin(data.getVin())
-                .code(getCode())
-                .type(getType())
-                .description("无法构造有效的日期时间: " + e.getMessage())
-                .timestamp(null) // 设置为null，避免类型转换问题
-                .build());
-            
-            // 使用当前时间作为ctime
-            data.setCtime(getCurrentTimeAsString());
-            return issues;
+            LocalDateTime.of(year, month, day, hours, minutes, seconds);
+        } catch (DateTimeException e) {
+            return singleIssue(data, 
+                    String.format("日期时间组合无效: %04d-%02d-%02d %02d:%02d:%02d (%s)", 
+                            year, month, day, hours, minutes, seconds, e.getMessage()));
         }
         
         return noIssue();
-    }
-    
-    /**
-     * 获取当前时间作为格式化的字符串
-     */
-    private String getCurrentTimeAsString() {
-        java.util.Date now = new java.util.Date();
-        return String.format("%tF %tT", now, now);
-    }
-
-    /**
-     * 检查值是否在指定范围内
-     */
-    private boolean isValidRange(Integer value, int min, int max) {
-        return value != null && value >= min && value <= max;
-    }
-    
-    /**
-     * 创建质量问题
-     */
-    protected Issue createIssue(Gb32960Data data, String description) {
-        return Issue.builder()
-            .vin(data.getVin())
-            .code(getCode())
-            .type(getType())
-            .description(description)
-            .timestamp(null) // 设置为null，避免类型转换问题
-            .build();
     }
 } 

@@ -2,7 +2,7 @@ package org.battery.quality.rule.impl.timeliness;
 
 import org.battery.quality.model.Gb32960Data;
 import org.battery.quality.model.Issue;
-import org.battery.quality.rule.BaseStateRule;
+import org.battery.quality.rule.template.AbstractStateRule;
 import org.battery.quality.model.RuleType;
 import org.battery.quality.rule.annotation.QualityRule;
 
@@ -20,10 +20,10 @@ import java.util.List;
     category = RuleType.TIMELINESS,
     priority = 7
 )
-public class TimestampMonotonicityRule extends BaseStateRule {
+public class TimestampMonotonicityRule extends AbstractStateRule {
 
     @Override
-    public List<Issue> checkState(Gb32960Data currentData, Gb32960Data previousData) {
+    protected List<Issue> doCheckState(Gb32960Data currentData, Gb32960Data previousData) {
         if (previousData == null || currentData.getCtime() == null || previousData.getCtime() == null) {
             return noIssue();
         }

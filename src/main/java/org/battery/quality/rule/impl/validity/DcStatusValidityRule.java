@@ -2,35 +2,35 @@ package org.battery.quality.rule.impl.validity;
 
 import org.battery.quality.model.Gb32960Data;
 import org.battery.quality.model.Issue;
-import org.battery.quality.rule.BaseRule;
+import org.battery.quality.rule.template.AbstractRule;
 import org.battery.quality.model.RuleType;
 import org.battery.quality.rule.annotation.QualityRule;
 
 import java.util.List;
 
 /**
- * DC状态有效性检查规则
+ * 直流状态有效性检查规则
  */
 @QualityRule(
     type = "DC_STATUS_VALIDITY",
-    code = 1008,
-    description = "DC状态无效",
+    code = 1002,
+    description = "直流状态无效",
     category = RuleType.VALIDITY,
-    priority = 5
+    priority = 4
 )
-public class DcStatusValidityRule extends BaseRule {
-
+public class DcStatusValidityRule extends AbstractRule {
+    
     @Override
-    public List<Issue> check(Gb32960Data data) {
-        Integer status = data.getDcStatus();
-        if (status == null) {
+    protected List<Issue> doCheck(Gb32960Data data) {
+        Integer dcStatus = data.getDcStatus();
+        
+        if (dcStatus == null) {
             return noIssue();
         }
         
-        // DC状态: 1-工作，2-断开
-        if (status < 1 || status > 2) {
-            return singleIssue(data, 
-                    String.format("DC状态: %d", status));
+        // 直流状态：0-断开，1-连接
+        if (dcStatus != 0 && dcStatus != 1) {
+            return singleIssue(data, String.format("直流状态值: %d", dcStatus));
         }
         
         return noIssue();

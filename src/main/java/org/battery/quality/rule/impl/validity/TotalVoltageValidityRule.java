@@ -2,7 +2,7 @@ package org.battery.quality.rule.impl.validity;
 
 import org.battery.quality.model.Gb32960Data;
 import org.battery.quality.model.Issue;
-import org.battery.quality.rule.BaseRule;
+import org.battery.quality.rule.template.AbstractRule;
 import org.battery.quality.model.RuleType;
 import org.battery.quality.rule.annotation.QualityRule;
 
@@ -13,24 +13,26 @@ import java.util.List;
  */
 @QualityRule(
     type = "TOTAL_VOLTAGE_VALIDITY",
-    code = 1003,
+    code = 1012,
     description = "总电压无效",
     category = RuleType.VALIDITY,
-    priority = 5
+    priority = 4
 )
-public class TotalVoltageValidityRule extends BaseRule {
+public class TotalVoltageValidityRule extends AbstractRule {
     
+    private static final int MIN_VOLTAGE = 0;
+    private static final int MAX_VOLTAGE = 1000; // 单位 V
+
     @Override
-    public List<Issue> check(Gb32960Data data) {
+    protected List<Issue> doCheck(Gb32960Data data) {
         Integer voltage = data.getTotalVoltage();
         if (voltage == null) {
             return noIssue();
         }
         
-        // 总电压取值范围: [0, 10000] (单位: 0.1V)
-        if (voltage < 0 || voltage > 10000) {
+        if (voltage < MIN_VOLTAGE || voltage > MAX_VOLTAGE) {
             return singleIssue(data, 
-                    String.format("总电压: %.1fV", voltage / 10.0));
+                    String.format("总电压: %d V", voltage));
         }
         
         return noIssue();

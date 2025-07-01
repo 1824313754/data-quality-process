@@ -2,7 +2,7 @@ package org.battery.quality.rule.impl.timeliness;
 
 import org.battery.quality.model.Gb32960Data;
 import org.battery.quality.model.Issue;
-import org.battery.quality.rule.BaseRule;
+import org.battery.quality.rule.template.AbstractRule;
 import org.battery.quality.model.RuleType;
 import org.battery.quality.rule.annotation.QualityRule;
 
@@ -11,44 +11,41 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * 数据时间超前检查规则
+ * 数据超前检查规则
  */
 @QualityRule(
     type = "DATA_AHEAD",
-    code = 2003,
-    description = "数据时间超前",
+    code = 2001,
+    description = "数据时间超前于当前时间",
     category = RuleType.TIMELINESS,
-    priority = 13
+    priority = 3
 )
-public class DataAheadRule extends BaseRule {
+public class DataAheadRule extends AbstractRule {
     
-    private static final long MIN_AHEAD_MS = -60 * 1000; // -1分钟，单位毫秒
+    private static final long MAX_AHEAD_MS = 10 * 60 * 1000; // 最大超前10分钟
 
     @Override
-    public List<Issue> check(Gb32960Data data) {
-        String ctimeStr = data.getCtime();
-        String timeStr = data.getTime();
-        
-        if (ctimeStr == null || timeStr == null) {
+    protected List<Issue> doCheck(Gb32960Data data) {
+        if (data.getCtime() == null) {
             return noIssue();
         }
         
         try {
             // 解析时间字符串
             SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            Date timeDate = format.parse(timeStr);
-            Date ctimeDate = format.parse(ctimeStr);
+            Date dataTime = format.parse(data.getCtime());
+            Date now = new Date();
             
-            long time = timeDate.getTime();
-            long ctime = ctimeDate.getTime();
-            
-            long diff = time - ctime;
-            
-            // 如果时间差小于-1分钟（数据时间超前系统时间1分钟以上）
-            if (diff < MIN_AHEAD_MS) {
-                return singleIssue(data, 
-                        String.format("时间超前: %d毫秒, %.2f分钟", 
-                                Math.abs(diff), Math.abs(diff) / 60000.0));
+            // 检查数据时间是否超前于当前时间
+            if (dataTime.getTime() > now.getTime()) {
+                long diff = dataTime.getTime() - now.getTime();
+                
+                // 如果超前时间超过阈值，则报告问题
+                if (diff > MAX_AHEAD_MS) {
+                    return singleIssue(data, 
+                            String.format("数据时间(%s)超前于当前时间(%s) %d毫秒", 
+                                    data.getCtime(), format.format(now), diff));
+                }
             }
         } catch (Exception e) {
             // 如果解析出错，记录一个解析错误的问题

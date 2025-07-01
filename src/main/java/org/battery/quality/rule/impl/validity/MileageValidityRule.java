@@ -2,7 +2,7 @@ package org.battery.quality.rule.impl.validity;
 
 import org.battery.quality.model.Gb32960Data;
 import org.battery.quality.model.Issue;
-import org.battery.quality.rule.BaseRule;
+import org.battery.quality.rule.template.AbstractRule;
 import org.battery.quality.model.RuleType;
 import org.battery.quality.rule.annotation.QualityRule;
 
@@ -13,18 +13,18 @@ import java.util.List;
  */
 @QualityRule(
     type = "MILEAGE_VALIDITY",
-    code = 1007,
+    code = 1005,
     description = "里程无效",
     category = RuleType.VALIDITY,
-    priority = 5
+    priority = 3
 )
-public class MileageValidityRule extends BaseRule {
+public class MileageValidityRule extends AbstractRule {
     
     private static final int MIN_MILEAGE = 0;
-    private static final int MAX_MILEAGE = 9999999; // 最大里程
+    private static final int MAX_MILEAGE = 2000000; // 单位 km
 
     @Override
-    public List<Issue> check(Gb32960Data data) {
+    protected List<Issue> doCheck(Gb32960Data data) {
         Integer mileage = data.getMileage();
         if (mileage == null) {
             return noIssue();
@@ -32,7 +32,7 @@ public class MileageValidityRule extends BaseRule {
         
         if (mileage < MIN_MILEAGE || mileage > MAX_MILEAGE) {
             return singleIssue(data, 
-                    String.format("里程: %d", mileage));
+                    String.format("里程值: %d km", mileage));
         }
         
         return noIssue();

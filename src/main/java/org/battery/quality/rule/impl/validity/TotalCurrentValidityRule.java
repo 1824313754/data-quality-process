@@ -2,7 +2,7 @@ package org.battery.quality.rule.impl.validity;
 
 import org.battery.quality.model.Gb32960Data;
 import org.battery.quality.model.Issue;
-import org.battery.quality.rule.BaseRule;
+import org.battery.quality.rule.template.AbstractRule;
 import org.battery.quality.model.RuleType;
 import org.battery.quality.rule.annotation.QualityRule;
 
@@ -13,27 +13,27 @@ import java.util.List;
  */
 @QualityRule(
     type = "TOTAL_CURRENT_VALIDITY",
-    code = 1004,
+    code = 1011,
     description = "总电流无效",
     category = RuleType.VALIDITY,
-    priority = 5
+    priority = 4
 )
-public class TotalCurrentValidityRule extends BaseRule {
+public class TotalCurrentValidityRule extends AbstractRule {
     
-    private static final int MIN_CURRENT_ABS = 0;
-    private static final int MAX_CURRENT_ABS = 20000; // 单位 0.1A，20000表示2000A
+    private static final int MIN_CURRENT = -1000;  // 最小电流 -1000A
+    private static final int MAX_CURRENT = 1000;   // 最大电流 1000A
 
     @Override
-    public List<Issue> check(Gb32960Data data) {
-        Integer current = data.getTotalCurrent(); // 注意：已经计算过偏移
+    protected List<Issue> doCheck(Gb32960Data data) {
+        Integer current = data.getTotalCurrent();
         if (current == null) {
             return noIssue();
         }
         
-        int absoluteCurrent = Math.abs(current);
-        if (absoluteCurrent < MIN_CURRENT_ABS || absoluteCurrent > MAX_CURRENT_ABS) {
+        // 电流值已经减去10000的偏移量
+        if (current < MIN_CURRENT || current > MAX_CURRENT) {
             return singleIssue(data, 
-                    String.format("总电流: %d (0.1A)", current));
+                    String.format("总电流: %d A", current));
         }
         
         return noIssue();
