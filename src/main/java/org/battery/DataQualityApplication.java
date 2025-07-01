@@ -47,8 +47,8 @@ public class DataQualityApplication {
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(appConfig.getProcess().getParallelism());
       
-        // 配置检查点
-        env.enableCheckpointing(appConfig.getProcess().getCheckpointInterval());
+//        // 配置检查点
+//        env.enableCheckpointing(appConfig.getProcess().getCheckpointInterval());
 
         // 创建规则广播状态描述符
         MapStateDescriptor<String, Map<String, RuleInfo>> ruleStateDescriptor = 

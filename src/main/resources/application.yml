@@ -6,7 +6,7 @@ kafka:
   autoOffsetReset: latest
 
 process:
-  parallelism: 1
+  parallelism: 3
   stateRetentionMinutes: 60
   checkpointInterval: 60000
 
@@ -17,7 +17,7 @@ mysql:
   maxPoolSize: 10
   minPoolSize: 2
   connectionTimeout: 30000
-  cacheRefreshInterval: 300
+  cacheRefreshInterval: 30
 
 # Sink配置
 sink:
