@@ -85,9 +85,8 @@ public class Gb32960Data implements Serializable {
     private Integer otherFailuresCount;
     private List<Integer> probeTemperatures;
     private String customField;
-    private Long time;
-    private Long ctime;
-
+    private String time;  // 数据时间，格式为"yyyy-MM-dd HH:mm:ss"的字符串
+    private String ctime;  // 处理时间，格式为"yyyy-MM-dd HH:mm:ss"的字符串
 
     public List<Integer> computeProbeTemperatures() {
         if (probeTemperatures == null) return null;
@@ -103,15 +102,12 @@ public class Gb32960Data implements Serializable {
     public Integer computeTotalCurrent() {
         return totalCurrent == null ? null : totalCurrent - 10000;
     }
-    
-
 
     public void setTotalCurrent(Integer totalCurrent) {
         this.totalCurrent = totalCurrent;
         this.totalCurrent = computeTotalCurrent();
     }
 
-    
     public void setCurrent(Integer current) {
         this.current = current;
         this.current = computeCurrent();

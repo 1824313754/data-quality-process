@@ -29,9 +29,9 @@ public class DateTimeFieldsValidityRule extends BaseRule {
     @Override
     public List<Issue> check(Gb32960Data data) {
         List<Issue> issues = new ArrayList<>();
-        Long kafkaTime = data.getTime();
+        // 不再尝试将时间字符串转换为时间戳
+        String timeStr = data.getTime();
         
-
         // 检查时间字段的值是否在有效范围内
         Integer year = data.getYear();
         Integer month = data.getMonth();
@@ -40,7 +40,6 @@ public class DateTimeFieldsValidityRule extends BaseRule {
         Integer minutes = data.getMinutes();
         Integer seconds = data.getSeconds();
         
-
         // 检查所有字段的有效性
         if ((!isValidRange(year, 0, 99)) ||
             !isValidRange(month, 1, 12) ||
@@ -75,26 +74,47 @@ public class DateTimeFieldsValidityRule extends BaseRule {
                 .code(getCode())
                 .type(getType())
                 .description("时间字段值无效: " + invalidFields)
-                .timestamp(kafkaTime)
+                .timestamp(null) // 设置为null，避免类型转换问题
                 .build());
             
-            data.setCtime(kafkaTime); // 使用Kafka时间作为ctime
+            // 使用当前时间作为ctime
+            data.setCtime(getCurrentTimeAsString());
+            return issues;
+        }
+
+        int fullYear = (year < 100) ? (2000 + year) : year;
+        try {
+            LocalDateTime dateTime = LocalDateTime.of(fullYear, month, day, hours, minutes, seconds);
+            
+            // 计算并设置ctime，直接格式化为字符串
+            data.setCtime(String.format("%04d-%02d-%02d %02d:%02d:%02d", 
+                fullYear, month, day, hours, minutes, seconds));
+            
+        } catch (Exception e) {
+            issues.add(Issue.builder()
+                .vin(data.getVin())
+                .code(getCode())
+                .type(getType())
+                .description("无法构造有效的日期时间: " + e.getMessage())
+                .timestamp(null) // 设置为null，避免类型转换问题
+                .build());
+            
+            // 使用当前时间作为ctime
+            data.setCtime(getCurrentTimeAsString());
             return issues;
         }
         
-
-        int fullYear = (year < 100) ? (2000 + year) : year;
-        LocalDateTime dateTime = LocalDateTime.of(fullYear, month, day, hours, minutes, seconds);
-
-        // 计算并设置ctime
-        long computedCtime = dateTime.toInstant(ZoneOffset.UTC).toEpochMilli();
-        data.setCtime(computedCtime);
-
-        
         return noIssue();
     }
-
     
+    /**
+     * 获取当前时间作为格式化的字符串
+     */
+    private String getCurrentTimeAsString() {
+        java.util.Date now = new java.util.Date();
+        return String.format("%tF %tT", now, now);
+    }
+
     /**
      * 检查值是否在指定范围内
      */
@@ -111,7 +131,7 @@ public class DateTimeFieldsValidityRule extends BaseRule {
             .code(getCode())
             .type(getType())
             .description(description)
-            .timestamp(data.getTime())
+            .timestamp(null) // 设置为null，避免类型转换问题
             .build();
     }
 } 

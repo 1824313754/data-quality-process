@@ -6,6 +6,8 @@ import org.battery.quality.rule.BaseRule;
 import org.battery.quality.model.RuleType;
 import org.battery.quality.rule.annotation.QualityRule;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -24,20 +26,33 @@ public class DataAheadRule extends BaseRule {
 
     @Override
     public List<Issue> check(Gb32960Data data) {
-        Long ctime = data.getCtime();
-        Long time = data.getTime();
+        String ctimeStr = data.getCtime();
+        String timeStr = data.getTime();
         
-        if (ctime == null || time == null) {
+        if (ctimeStr == null || timeStr == null) {
             return noIssue();
         }
         
-        long diff = time - ctime;
-        
-        // 如果时间差小于-1分钟（数据时间超前系统时间1分钟以上）
-        if (diff < MIN_AHEAD_MS) {
-            return singleIssue(data, 
-                    String.format("时间超前: %d毫秒, %.2f分钟", 
-                            Math.abs(diff), Math.abs(diff) / 60000.0));
+        try {
+            // 解析时间字符串
+            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date timeDate = format.parse(timeStr);
+            Date ctimeDate = format.parse(ctimeStr);
+            
+            long time = timeDate.getTime();
+            long ctime = ctimeDate.getTime();
+            
+            long diff = time - ctime;
+            
+            // 如果时间差小于-1分钟（数据时间超前系统时间1分钟以上）
+            if (diff < MIN_AHEAD_MS) {
+                return singleIssue(data, 
+                        String.format("时间超前: %d毫秒, %.2f分钟", 
+                                Math.abs(diff), Math.abs(diff) / 60000.0));
+            }
+        } catch (Exception e) {
+            // 如果解析出错，记录一个解析错误的问题
+            return singleIssue(data, "时间格式解析错误: " + e.getMessage());
         }
         
         return noIssue();

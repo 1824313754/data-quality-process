@@ -6,6 +6,8 @@ import org.battery.quality.rule.BaseStateRule;
 import org.battery.quality.model.RuleType;
 import org.battery.quality.rule.annotation.QualityRule;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -26,11 +28,24 @@ public class TimestampMonotonicityRule extends BaseStateRule {
             return noIssue();
         }
         
-        // 检查时间戳是否单调递增
-        if (currentData.getCtime() <= previousData.getCtime()) {
-            return singleIssue(currentData, 
-                    String.format("当前时间戳(%d)小于等于前一条记录的时间戳(%d)", 
-                            currentData.getCtime(), previousData.getCtime()));
+        try {
+            // 解析时间字符串
+            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date currentDate = format.parse(currentData.getCtime());
+            Date previousDate = format.parse(previousData.getCtime());
+            
+            long currentTime = currentDate.getTime();
+            long previousTime = previousDate.getTime();
+            
+            // 检查时间戳是否单调递增
+            if (currentTime <= previousTime) {
+                return singleIssue(currentData, 
+                        String.format("当前时间戳(%s)小于等于前一条记录的时间戳(%s)", 
+                                currentData.getCtime(), previousData.getCtime()));
+            }
+        } catch (Exception e) {
+            // 如果解析出错，记录一个解析错误的问题
+            return singleIssue(currentData, "时间格式解析错误: " + e.getMessage());
         }
         
         return noIssue();

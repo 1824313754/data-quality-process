@@ -58,7 +58,7 @@ public abstract class BaseRule implements Rule {
                 .description(getDescription())
                 .value(value)
                 .type(getCategory().name())
-                .timestamp(data.getCtime())
+                .timestamp(null)
                 .build();
     }
     

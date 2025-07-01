@@ -11,6 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * 国标32960数据反序列化Schema
@@ -20,11 +22,16 @@ public class Gb32960DeserializationSchema implements KafkaRecordDeserializationS
     private static final long serialVersionUID = 1L;
     private static final Logger LOGGER = LoggerFactory.getLogger(Gb32960DeserializationSchema.class);
     private transient ObjectMapper objectMapper;
+    private transient SimpleDateFormat dateFormat;
     
     @Override
     public void deserialize(ConsumerRecord<byte[], byte[]> record, Collector<Gb32960Data> out) throws IOException {
         if (objectMapper == null) {
             objectMapper = new ObjectMapper();
+        }
+        
+        if (dateFormat == null) {
+            dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         }
         
         try {
@@ -35,8 +42,11 @@ public class Gb32960DeserializationSchema implements KafkaRecordDeserializationS
             
             Gb32960Data data = objectMapper.readValue(message, Gb32960Data.class);
             if (data != null) {
-                // 设置time字段为Kafka消息的时间戳
-                data.setTime(record.timestamp());
+                // 将Kafka消息的时间戳格式化为字符串
+                data.setTime(dateFormat.format(new Date(record.timestamp())));
+                
+                // 将当前处理时间格式化为字符串
+                data.setCtime(dateFormat.format(new Date()));
                 
                 // 收集数据
                 out.collect(data);

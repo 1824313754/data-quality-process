@@ -1,6 +1,7 @@
 package org.battery;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.state.MapStateDescriptor;
@@ -89,20 +90,31 @@ public class DataQualityApplication {
                 .name("Rule-Processor");
         DataStream<String> jsonStream = resultsStream.map(new MapFunction<Gb32960DataWithIssues, String>() {
             private final ObjectMapper mapper = new ObjectMapper();
+
             @Override
             public String map(Gb32960DataWithIssues value) throws Exception {
-                // 将对象序列化成 JsonNode 树
+                // 把整个对象转成JsonNode树
                 JsonNode root = mapper.valueToTree(value);
-                JsonNode dataNode = root.get("data");
 
-                // 判断 null
+                // 取出 data 节点（应该是一个ObjectNode）
+                ObjectNode dataNode = (ObjectNode) root.get("data");
+
                 if (dataNode == null || dataNode.isNull()) {
                     throw new RuntimeException("Missing `data` field in Gb32960DataWithIssues");
                 }
 
-                // 将 data 节点单独序列化为字符串
-                return mapper.writeValueAsString(dataNode);            }
+                // 取出 issues 节点
+                JsonNode issuesNode = root.get("issues");
+
+                // 把 issues 节点放到 data 节点里，字段名叫 "issues"
+                dataNode.set("issues", issuesNode);
+
+                // 返回合并后的 data 节点的 JSON 字符串
+                return mapper.writeValueAsString(dataNode);
+            }
         });
+
+
         // 使用SinkFactory创建的Sink将结果写入存储
         jsonStream.addSink(SinkFactory.createSink(parameterTool))
                 .name("Data-Quality-Sink");

@@ -6,6 +6,8 @@ import org.battery.quality.rule.BaseStateRule;
 import org.battery.quality.model.RuleType;
 import org.battery.quality.rule.annotation.QualityRule;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -36,17 +38,30 @@ public class SamplingIntervalConsistencyRule extends BaseStateRule {
         }
         
         // 检查采样间隔
-        Long currentTime = current.getCtime();
-        Long previousTime = previous.getCtime();
+        String currentTimeStr = current.getCtime();
+        String previousTimeStr = previous.getCtime();
         
-        if (currentTime != null && previousTime != null) {
-            long interval = currentTime - previousTime;
-            long deviation = Math.abs(interval - NORMAL_INTERVAL);
-            
-            if (deviation > MAX_DEVIATION) {
-                return singleIssue(current, 
-                        String.format("采样间隔: %d毫秒, 偏差: %d毫秒", 
-                                interval, deviation));
+        if (currentTimeStr != null && previousTimeStr != null) {
+            try {
+                // 解析时间字符串
+                SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                Date currentDate = format.parse(currentTimeStr);
+                Date previousDate = format.parse(previousTimeStr);
+                
+                long currentTime = currentDate.getTime();
+                long previousTime = previousDate.getTime();
+                
+                long interval = currentTime - previousTime;
+                long deviation = Math.abs(interval - NORMAL_INTERVAL);
+                
+                if (deviation > MAX_DEVIATION) {
+                    return singleIssue(current, 
+                            String.format("采样间隔: %d毫秒, 偏差: %d毫秒", 
+                                    interval, deviation));
+                }
+            } catch (Exception e) {
+                // 如果解析出错，记录一个解析错误的问题
+                return singleIssue(current, "时间格式解析错误: " + e.getMessage());
             }
         }
         
