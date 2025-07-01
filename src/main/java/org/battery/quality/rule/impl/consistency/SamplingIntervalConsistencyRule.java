@@ -32,11 +32,6 @@ public class SamplingIntervalConsistencyRule extends BaseStateRule {
             return noIssue();
         }
         
-        // 确保是同一辆车
-        if (!isSameVehicle(current, previous)) {
-            return noIssue();
-        }
-        
         // 检查采样间隔
         String currentTimeStr = current.getCtime();
         String previousTimeStr = previous.getCtime();
@@ -66,12 +61,5 @@ public class SamplingIntervalConsistencyRule extends BaseStateRule {
         }
         
         return noIssue();
-    }
-    
-    /**
-     * 判断是否为同一辆车
-     */
-    private boolean isSameVehicle(Gb32960Data current, Gb32960Data previous) {
-        return current.getVin() != null && current.getVin().equals(previous.getVin());
     }
 } 

@@ -22,7 +22,8 @@ public class CellVoltagesLengthConsistencyRule extends BaseStateRule {
 
     @Override
     public List<Issue> checkState(Gb32960Data currentData, Gb32960Data previousData) {
-        if (previousData == null || isBatteryNumberDifferent(currentData, previousData)) {
+        // 如果没有前一条数据，则跳过检查
+        if (previousData == null) {
             return noIssue();
         }
         
@@ -42,16 +43,5 @@ public class CellVoltagesLengthConsistencyRule extends BaseStateRule {
         
         return singleIssue(currentData, 
                 String.format("当前长度: %d, 前一条长度: %d", currentLength, previousLength));
-    }
-    
-    /**
-     * 判断当前电池包号与上一条是否不同
-     */
-    private boolean isBatteryNumberDifferent(Gb32960Data current, Gb32960Data previous) {
-        Integer currentBatteryNumber = current.getBatteryNumber();
-        Integer previousBatteryNumber = previous.getBatteryNumber();
-        
-        return currentBatteryNumber == null || previousBatteryNumber == null ||
-               !currentBatteryNumber.equals(previousBatteryNumber);
     }
 } 

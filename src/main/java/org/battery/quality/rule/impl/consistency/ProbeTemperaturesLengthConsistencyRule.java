@@ -27,11 +27,6 @@ public class ProbeTemperaturesLengthConsistencyRule extends BaseStateRule {
             return noIssue();
         }
         
-        // 确保是同一辆车同一个电池
-        if (!isSameVehicleAndBattery(current, previous)) {
-            return noIssue();
-        }
-        
         List<Integer> currentTemperatures = current.getProbeTemperatures();
         List<Integer> previousTemperatures = previous.getProbeTemperatures();
         
@@ -47,15 +42,5 @@ public class ProbeTemperaturesLengthConsistencyRule extends BaseStateRule {
                             currentTemperatures.size(), previousTemperatures.size()));
         }
         return noIssue();
-    }
-    
-    /**
-     * 判断是否为同一辆车的同一个电池
-     */
-    private boolean isSameVehicleAndBattery(Gb32960Data current, Gb32960Data previous) {
-        return current.getVin() != null && 
-               current.getVin().equals(previous.getVin()) &&
-               current.getBatteryNumber() != null &&
-               current.getBatteryNumber().equals(previous.getBatteryNumber());
     }
 } 
