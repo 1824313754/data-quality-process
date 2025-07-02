@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 /**
@@ -111,11 +112,15 @@ public class DataQualityApplication {
 
                 // 取出 data 节点（应该是一个ObjectNode）
                 ObjectNode dataNode = (ObjectNode) root.get("data");
-
+                //取出time,转为date
+                String time = dataNode.get("time").asText();
+                String date = time.substring(0,10);
+                dataNode.put("day_of_year", date);
+                
                 if (dataNode == null || dataNode.isNull()) {
                     throw new RuntimeException("Missing `data` field in Gb32960DataWithIssues");
                 }
-
+                
                 // 取出 issues 节点
                 JsonNode issuesNode = root.get("issues");
 
