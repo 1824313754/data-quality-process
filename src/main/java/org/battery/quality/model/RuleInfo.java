@@ -1,6 +1,7 @@
 package org.battery.quality.model;
 
 import java.io.Serializable;
+import java.sql.Timestamp;
 
 /**
  * 规则信息类，用于在Flink节点间传输规则信息，避免直接序列化规则对象
@@ -13,6 +14,7 @@ public class RuleInfo implements Serializable {
     private String name;              // 规则类名
     private String sourceCode;        // 规则源代码
     private String enabledFactories;  // 启用的车厂ID列表，逗号分隔，0表示所有车厂
+    private Timestamp updateTime;     // 更新时间
     
     public RuleInfo() {
     }
@@ -22,6 +24,14 @@ public class RuleInfo implements Serializable {
         this.name = name;
         this.sourceCode = sourceCode;
         this.enabledFactories = enabledFactories;
+    }
+    
+    public RuleInfo(String id, String name, String sourceCode, String enabledFactories, Timestamp updateTime) {
+        this.id = id;
+        this.name = name;
+        this.sourceCode = sourceCode;
+        this.enabledFactories = enabledFactories;
+        this.updateTime = updateTime;
     }
     
     public String getId() {
@@ -56,6 +66,26 @@ public class RuleInfo implements Serializable {
         this.enabledFactories = enabledFactories;
     }
     
+    public Timestamp getUpdateTime() {
+        return updateTime;
+    }
+    
+    public void setUpdateTime(Timestamp updateTime) {
+        this.updateTime = updateTime;
+    }
+    
+    /**
+     * 获取规则缓存键（规则ID:更新时间）
+     * @return 缓存键
+     */
+    public String getCacheKey() {
+        if (updateTime != null) {
+            return id + ":" + updateTime.getTime();
+        } else {
+            return id;
+        }
+    }
+    
     /**
      * 判断规则是否适用于指定车厂
      * @param factoryId 车厂ID
@@ -87,6 +117,7 @@ public class RuleInfo implements Serializable {
                 "id='" + id + '\'' +
                 ", name='" + name + '\'' +
                 ", enabledFactories='" + enabledFactories + '\'' +
+                ", updateTime='" + (updateTime != null ? updateTime : "null") + '\'' +
                 '}';
     }
 } 

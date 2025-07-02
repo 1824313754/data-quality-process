@@ -256,7 +256,7 @@ public class RuleManager {
         
         try (Connection conn = DatabaseManager.getInstance().getConnection();
              PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT id, name, source_code, enabled_factories FROM rule_class")) {
+                     "SELECT id, name, source_code, enabled_factories, update_time FROM rule_class")) {
             
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -264,15 +264,17 @@ public class RuleManager {
                     String name = rs.getString("name");
                     String sourceCode = rs.getString("source_code");
                     String enabledFactories = rs.getString("enabled_factories");
+                    Timestamp updateTime = rs.getTimestamp("update_time");
                     
                     // 如果enabledFactories为null，默认设置为"0"（适用于所有车厂）
                     if (enabledFactories == null) {
                         enabledFactories = "0";
                     }
                     
-                    RuleInfo ruleInfo = new RuleInfo(id, name, sourceCode, enabledFactories);
+                    RuleInfo ruleInfo = new RuleInfo(id, name, sourceCode, enabledFactories, updateTime);
                     rules.put(id, ruleInfo);
-                    LOGGER.debug("加载规则: ID={}, 类名={}, 适用车厂={}", id, name, enabledFactories);
+                    LOGGER.debug("加载规则: ID={}, 类名={}, 适用车厂={}, 更新时间={}",
+                            id, name, enabledFactories, updateTime);
                 }
             }
             
