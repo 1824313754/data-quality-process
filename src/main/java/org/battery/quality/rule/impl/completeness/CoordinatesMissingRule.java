@@ -38,7 +38,7 @@ public class CoordinatesMissingRule extends BaseRule {
         } else if (isLatitudeMissing) {
             return singleIssue(data, "纬度缺失");
         }
-        
+        System.out.println(1111);
         return noIssue();
     }
 } 

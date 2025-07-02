@@ -3,22 +3,19 @@ CREATE DATABASE IF NOT EXISTS battery_quality DEFAULT CHARACTER SET utf8mb4 COLL
 
 USE battery_quality;
 
--- 创建规则字节码表
+-- 创建规则表
 CREATE TABLE IF NOT EXISTS rule_class (
     id VARCHAR(100) NOT NULL COMMENT '规则ID',
-    version INT NOT NULL DEFAULT 1 COMMENT '规则版本号',
     name VARCHAR(100) NOT NULL COMMENT '规则名称',
     description VARCHAR(255) NOT NULL COMMENT '规则描述',
     category VARCHAR(50) NOT NULL COMMENT '规则分类',
     rule_code INT NOT NULL COMMENT '异常编码',
     priority INT NOT NULL DEFAULT 5 COMMENT '规则优先级',
     source_code MEDIUMTEXT NOT NULL COMMENT '规则源代码',
-    md5_hash VARCHAR(32) NULL COMMENT '源代码MD5哈希值',
     enabled_factories VARCHAR(1000) NOT NULL DEFAULT '0' COMMENT '启用的车厂ID列表，用逗号分隔，0表示所有车厂',
     create_time DATETIME NOT NULL COMMENT '创建时间',
     update_time DATETIME NOT NULL COMMENT '更新时间',
-    PRIMARY KEY (id, version),
-    INDEX idx_rule_latest (id, version DESC),
+    PRIMARY KEY (id),
     INDEX idx_category (category),
     INDEX idx_rule_code (rule_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='规则表';

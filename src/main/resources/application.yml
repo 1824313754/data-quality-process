@@ -1,7 +1,7 @@
 # 应用配置
 kafka:
   bootstrapServers: cdh03:6667,cdh04:6667,cdh05:6667
-  topic: ods-gb-all
+  topic: ods-001-wuling
   groupId: data-quality-group
   autoOffsetReset: latest
 
@@ -17,7 +17,7 @@ mysql:
   maxPoolSize: 10
   minPoolSize: 2
   connectionTimeout: 30000
-  cacheRefreshInterval: 300
+  cacheRefreshInterval: 30
 
 # Sink配置
 sink:
@@ -31,8 +31,8 @@ doris:
   passwd: gotion@2025
   database: battery_ods
   table: error_data
-  batchSize: 1
-  batchIntervalMs: 0
+  batchSize: 1000
+  batchIntervalMs: 10000
   maxRetries: 2147483647
   maxBatchBytes: 1073741824
 

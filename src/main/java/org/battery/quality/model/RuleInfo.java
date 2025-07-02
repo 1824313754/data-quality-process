@@ -9,21 +9,19 @@ import java.io.Serializable;
 public class RuleInfo implements Serializable {
     private static final long serialVersionUID = 1L;
     
-    private String id;           // 规则ID
-    private String name;         // 规则类名
-    private String sourceCode;   // 规则源代码
-    private int version;         // 规则版本
-    private String md5Hash;      // 规则MD5哈希
+    private String id;                // 规则ID
+    private String name;              // 规则类名
+    private String sourceCode;        // 规则源代码
+    private String enabledFactories;  // 启用的车厂ID列表，逗号分隔，0表示所有车厂
     
     public RuleInfo() {
     }
     
-    public RuleInfo(String id, String name, String sourceCode, int version, String md5Hash) {
+    public RuleInfo(String id, String name, String sourceCode, String enabledFactories) {
         this.id = id;
         this.name = name;
         this.sourceCode = sourceCode;
-        this.version = version;
-        this.md5Hash = md5Hash;
+        this.enabledFactories = enabledFactories;
     }
     
     public String getId() {
@@ -50,20 +48,37 @@ public class RuleInfo implements Serializable {
         this.sourceCode = sourceCode;
     }
     
-    public int getVersion() {
-        return version;
+    public String getEnabledFactories() {
+        return enabledFactories;
     }
     
-    public void setVersion(int version) {
-        this.version = version;
+    public void setEnabledFactories(String enabledFactories) {
+        this.enabledFactories = enabledFactories;
     }
     
-    public String getMd5Hash() {
-        return md5Hash;
-    }
-    
-    public void setMd5Hash(String md5Hash) {
-        this.md5Hash = md5Hash;
+    /**
+     * 判断规则是否适用于指定车厂
+     * @param factoryId 车厂ID
+     * @return 是否适用
+     */
+    public boolean isEnabledForFactory(String factoryId) {
+        if (enabledFactories == null || enabledFactories.isEmpty()) {
+            return false;
+        }
+        
+        // 0表示适用于所有车厂
+        if (enabledFactories.equals("0")) {
+            return true;
+        }
+        
+        // 检查是否包含指定车厂ID
+        for (String id : enabledFactories.split(",")) {
+            if (id.trim().equals(factoryId)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
     
     @Override
@@ -71,8 +86,7 @@ public class RuleInfo implements Serializable {
         return "RuleInfo{" +
                 "id='" + id + '\'' +
                 ", name='" + name + '\'' +
-                ", version=" + version +
-                ", md5Hash='" + md5Hash + '\'' +
+                ", enabledFactories='" + enabledFactories + '\'' +
                 '}';
     }
 } 
