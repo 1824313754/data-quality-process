@@ -8,6 +8,9 @@ import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
 import org.apache.flink.util.Collector;
+import org.apache.flink.util.OutputTag;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.battery.quality.config.AppConfig;
 import org.battery.quality.config.AppConfigLoader;
 import org.battery.quality.config.DatabaseManager;
@@ -19,6 +22,8 @@ import org.battery.quality.rule.RuleManager;
 import org.battery.quality.rule.observer.RuleUpdateObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import java.util.List;
 import java.util.Map;
@@ -33,6 +38,9 @@ public class BroadcastRuleProcessor extends KeyedBroadcastProcessFunction<
     private static final long serialVersionUID = 1L;
     private static final Logger LOGGER = LoggerFactory.getLogger(BroadcastRuleProcessor.class);
     
+    // 用于输出数据统计的侧输出标签
+    public static final OutputTag<String> DATA_STATS_TAG = new OutputTag<String>("data-stats") {};
+    
     // 规则广播状态描述符
     private final MapStateDescriptor<String, Map<String, RuleInfo>> ruleStateDescriptor;
     
@@ -41,6 +49,9 @@ public class BroadcastRuleProcessor extends KeyedBroadcastProcessFunction<
     
     // 保存上一条记录的状态
     private transient ValueState<Gb32960Data> previousDataState;
+    
+    // JSON对象映射器
+    private final ObjectMapper objectMapper = new ObjectMapper();
     
     /**
      * 构造函数
@@ -92,6 +103,14 @@ public class BroadcastRuleProcessor extends KeyedBroadcastProcessFunction<
         // 保存当前记录为下一次的上一条记录
         previousDataState.update(data);
         
+        // 输出数据统计（侧输出）
+        try {
+            // 对每条记录都输出统计信息
+            outputDataStats(data, ctx, allIssues);
+        } catch (Exception e) {
+            LOGGER.error("输出数据统计时出错", e);
+        }
+        
         // 无论是否有问题，都返回带有原始数据的结果
         Gb32960DataWithIssues result = Gb32960DataWithIssues.builder()
                 .data(data)
@@ -99,6 +118,53 @@ public class BroadcastRuleProcessor extends KeyedBroadcastProcessFunction<
                 .build();
         
         out.collect(result);
+    }
+    
+    /**
+     * 输出数据统计信息到侧输出流
+     * 
+     * @param data 数据对象
+     * @param ctx 上下文
+     * @param issues 异常列表
+     * @throws Exception 处理异常
+     */
+    private void outputDataStats(Gb32960Data data, ReadOnlyContext ctx, List<Issue> issues) throws Exception {
+        // 创建统计数据JSON
+        ObjectNode statsNode = objectMapper.createObjectNode();
+        
+        // 解析时间，强制使用数据中的time字段
+        LocalDateTime timestamp = null;
+        if (data.getTime() != null && !data.getTime().isEmpty()) {
+            try {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                timestamp = LocalDateTime.parse(data.getTime(), formatter);
+            } catch (Exception e) {
+                LOGGER.error("解析数据时间失败: {}，数据将被跳过", data.getTime());
+                // 如果无法解析time，直接返回不输出统计
+                return;
+            }
+        } else {
+            LOGGER.error("数据中time字段为空，数据将被跳过: {}", data.getVin());
+            // 如果time为空，直接返回不输出统计
+            return;
+        }
+        
+        // 判断数据是否正常
+        boolean isNormalData = (issues == null || issues.isEmpty());
+        
+        // 设置统计信息
+        statsNode.put("vin", data.getVin());
+        statsNode.put("day_of_year", timestamp.toLocalDate().toString());
+        statsNode.put("hour", timestamp.getHour());
+        statsNode.put("vehicleFactory", data.getVehicleFactory());
+        statsNode.put("normal_data_count", isNormalData ? 1 : 0); // 正常数据计数1，异常数据计数0
+        statsNode.put("abnormal_data_count", isNormalData ? 0 : 1); // 异常数据计数1，正常数据计数0
+        statsNode.put("data_count", 1); // 总数据计数1
+        statsNode.put("time", data.getTime()); // 使用原始time字段值
+        statsNode.put("last_update_time", timestamp.toString());
+        
+        // 输出到侧输出流
+        ctx.output(DATA_STATS_TAG, objectMapper.writeValueAsString(statsNode));
     }
     
     @Override

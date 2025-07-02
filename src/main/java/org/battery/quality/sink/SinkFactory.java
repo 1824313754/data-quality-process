@@ -20,17 +20,28 @@ public class SinkFactory {
      * @return 可用于将数据写入目标存储的SinkFunction
      */
     public static SinkFunction<String> createSink(ParameterTool parameterTool) {
+        return createSink(parameterTool, null);
+    }
+    
+    /**
+     * 根据配置和目标表名创建合适的Sink
+     *
+     * @param parameterTool 参数工具
+     * @param tableName 目标表名，可为null表示使用默认表
+     * @return 可用于将数据写入目标存储的SinkFunction
+     */
+    public static SinkFunction<String> createSink(ParameterTool parameterTool, String tableName) {
         String sinkType = parameterTool.get("sink.type", "doris");
-        LOGGER.info("创建Sink: type={}", sinkType);
+        LOGGER.info("创建Sink: type={}, table={}", sinkType, tableName != null ? tableName : "default");
         
         switch (sinkType.toLowerCase()) {
             case "doris":
-                return new FlinkDorisSink().getSinkFunction(parameterTool);
+                return new FlinkDorisSink(tableName).getSinkFunction(parameterTool);
             case "print":
                 return new PrintSink().getSinkFunction(parameterTool);
             default:
                 LOGGER.warn("未知的Sink类型: {}, 使用默认的DorisSink", sinkType);
-                return new FlinkDorisSink().getSinkFunction(parameterTool);
+                return new FlinkDorisSink(tableName).getSinkFunction(parameterTool);
         }
     }
     

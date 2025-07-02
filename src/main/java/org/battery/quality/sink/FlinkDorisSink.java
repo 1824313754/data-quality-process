@@ -16,20 +16,45 @@ import java.util.Properties;
  */
 public class FlinkDorisSink implements Sink {
     private static final Logger LOGGER = LoggerFactory.getLogger(DorisSink.class);
+    
+    // 目标表名
+    private final String targetTable;
+    
+    /**
+     * 默认构造函数
+     */
+    public FlinkDorisSink() {
+        this.targetTable = null;
+    }
+    
+    /**
+     * 指定目标表的构造函数
+     * 
+     * @param tableName 目标表名，可为null使用配置中的默认表
+     */
+    public FlinkDorisSink(String tableName) {
+        this.targetTable = tableName;
+    }
 
     @Override
     public SinkFunction<String> getSinkFunction(ParameterTool parameterTool) {
         // 准备StreamLoad参数
         Properties props = new Properties();
         props.setProperty("format", "json");
-        props.setProperty("json_root", "$.data");        // 💡 只解析 data 节点
         props.setProperty("array-object","true");
         props.setProperty("strip_outer_array", "true"); // 如果是一行一个对象，可设为 false
 
 
         // 设置Doris表名
-        String database = parameterTool.get("doris.database", "battery_data");
-        String tableName = parameterTool.get("doris.table", "gb32960_data_with_issues");
+        String database = parameterTool.get("doris.database", "battery_ods");
+        String tableName;
+        
+        // 如果构造时指定了表名，则使用指定的表名
+        if (targetTable != null) {
+            tableName = targetTable;
+        } else {
+            tableName = parameterTool.get("doris.table", "error_data");
+        }
         String table = database + "." + tableName;
         
         LOGGER.info("配置DorisSink: 表={}, 连接={}", table, parameterTool.get("doris.conn"));

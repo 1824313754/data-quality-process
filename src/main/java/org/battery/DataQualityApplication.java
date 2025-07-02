@@ -11,7 +11,9 @@ import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.streaming.api.datastream.BroadcastStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.util.OutputTag;
 import org.battery.quality.config.AppConfig;
 import org.battery.quality.config.AppConfigLoader;
 import org.battery.quality.model.Gb32960Data;
@@ -83,11 +85,22 @@ public class DataQualityApplication {
                 "Kafka Source");
 
         // 连接数据流和规则广播流
-        DataStream<Gb32960DataWithIssues> resultsStream = dataStream
+        SingleOutputStreamOperator<Gb32960DataWithIssues> resultsStream = dataStream
                 .keyBy(data -> data.getVin())
                 .connect(ruleBroadcastStream)
                 .process(new BroadcastRuleProcessor(ruleStateDescriptor))
                 .name("Rule-Processor");
+        
+        // 获取侧输出流 - 数据统计
+        DataStream<String> dataStatsStream = resultsStream
+                .getSideOutput(BroadcastRuleProcessor.DATA_STATS_TAG);
+                
+        // 将数据统计写入Doris
+        dataStatsStream
+                .addSink(SinkFactory.createSink(parameterTool, "normal_data_stats"))
+                .name("Data-Stats-Sink");
+                
+        // 处理主输出流 - 异常数据
         DataStream<String> jsonStream = resultsStream.map(new MapFunction<Gb32960DataWithIssues, String>() {
             private final ObjectMapper mapper = new ObjectMapper();
 
@@ -114,9 +127,8 @@ public class DataQualityApplication {
             }
         });
 
-
         // 使用SinkFactory创建的Sink将结果写入存储
-        jsonStream.addSink(SinkFactory.createSink(parameterTool))
+        jsonStream.addSink(SinkFactory.createSink(parameterTool, "error_data"))
                 .name("Data-Quality-Sink");
 
         // 执行任务

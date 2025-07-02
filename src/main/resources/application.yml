@@ -30,7 +30,8 @@ doris:
   user: root
   passwd: gotion@2025
   database: battery_ods
-  table: error_data
+  # 不同类型数据表
+  table: error_data  # 异常数据表
   batchSize: 1000
   batchIntervalMs: 10000
   maxRetries: 2147483647
