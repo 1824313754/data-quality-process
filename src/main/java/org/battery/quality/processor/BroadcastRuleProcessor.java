@@ -77,16 +77,12 @@ public class BroadcastRuleProcessor extends KeyedProcessFunction<
         
         // 获取状态
         previousDataState = getRuntimeContext().getState(descriptor);
-        
         // 加载应用配置
         AppConfig appConfig = AppConfigLoader.load();
-        
         // 初始化数据库连接
         DatabaseManager.getInstance().initDataSource(appConfig.getMysql());
-        
         // 获取规则更新间隔（秒）
         long ruleUpdateIntervalSeconds = appConfig.getMysql().getCacheRefreshInterval();
-        
         // 初始化规则
         updateRules();
         
@@ -107,15 +103,12 @@ public class BroadcastRuleProcessor extends KeyedProcessFunction<
     private void updateRules() {
         try {
             LOGGER.info("开始更新规则...");
-            
             // 从数据库加载最新规则
             Map<String, RuleInfo> newRuleInfos = RuleManager.loadAllRules();
-            
             // 清除旧的规则缓存
             ruleInstanceCache.clear();
             factoryRulesCache.clear();
             factoryStateRulesCache.clear();
-            
             // 更新规则信息缓存
             ruleInfoCache = newRuleInfos;
             
@@ -264,18 +257,9 @@ public class BroadcastRuleProcessor extends KeyedProcessFunction<
      * @return 规则实例
      */
     private Rule getRuleInstance(RuleInfo ruleInfo) {
-        // 尝试从缓存获取
-        Rule rule = ruleInstanceCache.get(ruleInfo.getId());
-        if (rule != null) {
-            return rule;
-        }
-        
+
         // 创建新的规则实例
-        rule = RuleManager.createRuleInstance(ruleInfo);
-        if (rule != null) {
-                        // 缓存规则实例
-            ruleInstanceCache.put(ruleInfo.getId(), rule);
-        }
+        Rule rule = RuleManager.createRuleInstance(ruleInfo);
         
         return rule;
     }
