@@ -1,248 +1,257 @@
 # 电池数据质量分析系统
 
-## 系统概述
-电池数据质量分析系统是一个基于Apache Flink的流处理应用，用于实时接收、处理和分析GB/T 32960电动汽车国标数据。系统主要功能是对接收到的车辆电池数据进行质量检查，发现数据中的问题并将结果输出到Doris数据库中进行存储和后续分析。
+## 项目概述
+
+电池数据质量分析系统是一个基于Apache Flink的实时数据质量检测框架，主要用于对车辆电池国标32960数据进行质量检测和异常识别。系统能够实时处理来自Kafka的电池数据流，应用动态配置的数据质量规则，识别数据中的异常情况，并将结果输出到指定存储系统（如Apache Doris）。
 
 ## 系统架构
 
-系统采用典型的流处理架构，主要包含以下组件：
+系统主要由以下几个部分组成：
 
-1. **数据源**：Kafka消息队列，接收GB/T 32960格式的车辆数据
-2. **规则源**：MySQL数据库，存储和管理数据质量检查规则
-3. **处理引擎**：Apache Flink，实现流式数据处理
-4. **数据存储**：Apache Doris，存储处理结果和质量问题
+1. **数据源模块**：从Kafka消费国标32960电池数据
+2. **规则管理模块**：管理和应用数据质量规则
+3. **数据处理模块**：使用Flink进行实时数据处理
+4. **结果存储模块**：将数据质量检测结果存储到目标系统
 
-系统整体架构如下图所示：
+### 架构图
 
+```mermaid
+graph TD;
+    Kafka["Kafka<br/>(数据源)"] -->|消费数据| Flink["Flink Stream<br/>(流处理引擎)"];
+    MySQL["MySQL<br/>(规则存储)"] -->|读取规则| RuleSource["规则广播源<br/>(RuleBroadcastSource)"];
+    RuleSource -->|广播规则| Flink;
+    Flink -->|处理数据| RuleProcessor["规则处理器<br/>(BroadcastRuleProcessor)"];
+    RuleProcessor -->|应用规则| RuleManager["规则管理器<br/>(RuleManager)"];
+    RuleManager -->|创建规则| RuleFactory["规则工厂<br/>(RuleFactory)"];
+    RuleManager -->|执行规则| RuleChain["规则链<br/>(RuleChain)"];
+    RuleProcessor -->|输出结果| OutputSink["输出接口<br/>(Sink)"];
+    OutputSink -->|输出到| Doris["Apache Doris<br/>(结果存储)"];
+    OutputSink -->|或输出到| Console["控制台<br/>(调试输出)"];
+    
+    subgraph "数据处理流程"
+    Flink --> RuleProcessor --> OutputSink;
+    end
+    
+    subgraph "规则管理流程"
+    MySQL --> RuleSource --> RuleManager --> RuleChain;
+    end
 ```
-Kafka(GB32960数据) --> Flink处理引擎 --> Doris存储系统
-                   ^
-                   |
-MySQL(规则管理) -----+
-```
 
-## 核心组件说明
+### 技术栈
 
-### 1. 数据模型
+- **Apache Flink**：实时流处理框架
+- **Apache Kafka**：消息队列，数据源
+- **MySQL**：存储规则元数据
+- **Apache Doris**：存储数据质量检测结果
 
-系统主要处理两类数据：
+## 核心功能
 
-- **Gb32960Data**: 国标32960格式的电池数据实体类
-  - `time`: 数据采集时间，String类型，格式为"yyyy-MM-dd HH:mm:ss"，在规则计算时需要转换为时间戳
-  - `ctime`: 数据处理时间，String类型，格式为"yyyy-MM-dd HH:mm:ss"，在规则计算时需要转换为时间戳
-- **Gb32960DataWithIssues**: 处理后的数据，包含原始数据和检测到的质量问题
-- **Issue**: 表示数据质量异常的详细信息
+### 1. 规则管理
 
-### 2. 数据质量规则
+系统支持多种数据质量规则类型：
 
-系统支持多种类型的数据质量规则检查：
+- **完整性规则（Completeness）**：检查数据是否完整，字段是否缺失
+  - 电池电压数据缺失检测
+  - 探针温度数据缺失检测
+  - 地理坐标数据缺失检测
 
-- **完整性规则 (Completeness)**: 检查数据是否完整，例如缺少必要的字段
-- **一致性规则 (Consistency)**: 检查数据内部是否一致，例如数组长度与声明的计数是否一致
-- **时效性规则 (Timeliness)**: 检查数据的时间属性，例如数据延迟、时间戳单调性
-- **有效性规则 (Validity)**: 检查数据值是否在合法范围内，例如SOC、电压、温度等
+- **一致性规则（Consistency）**：检查数据各部分之间是否保持一致性
+  - 电池电压长度与电池数量一致性检测
+  - 探针温度长度与探针数量一致性检测
+  - 充电状态一致性检测
+  - 采样间隔一致性检测
 
-规则通过注解方式定义，支持动态加载和配置。
+- **及时性规则（Timeliness）**：检查数据的时间属性
+  - 数据延迟检测（数据上传时间是否超过阈值）
+  - 数据提前检测（数据时间是否超前于当前时间）
+  - 时间戳单调性检测（确保数据时间戳按顺序递增）
 
-### 3. 处理流程
+- **有效性规则（Validity）**：检查数据值是否在合理范围内
+  - 总电压有效性检测
+  - 总电流有效性检测
+  - SOC有效性检测（电量百分比）
+  - 最高/最低温度有效性检测
+  - 最高/最低电压有效性检测
+  - 车速有效性检测
+  - 里程有效性检测
+  - 绝缘电阻有效性检测
 
-1. 从Kafka读取GB/T 32960数据
-2. 从MySQL读取并广播规则配置
-3. 对数据应用质量规则检查
-4. 标记质量问题并输出结果到Doris
+系统支持动态规则管理：
 
-### 4. Sink抽象
+- 规则可根据车厂分别启用或禁用
+- 规则可动态更新，无需重启系统
+- 支持规则版本管理
 
-系统使用Sink接口抽象数据输出逻辑，通过SinkFactory创建适当的Sink实现。目前支持以下Sink类型：
+### 2. 数据处理
 
-- **DorisSink**: 将数据写入Doris数据库
-- **PrintSink**: 将数据打印到控制台，支持简洁和详细两种模式
-- **MultipleSink**: 将数据同时发送到多个Sink（例如同时写入数据库并打印到控制台）
+- 采用Flink流处理架构，实时处理数据
+- 使用广播状态（Broadcast State）分发规则更新
+- 支持有状态处理，可以处理需要比较前后数据的规则
 
-Sink接口设计为返回SinkFunction，便于与Flink的流处理API集成。可通过配置参数`sink.type`选择不同的Sink类型：
-- `doris`: 使用DorisSink (默认)
-- `print`: 使用PrintSink
-- `both`: 同时使用DorisSink和PrintSink
+### 3. 扩展性设计
 
-对于PrintSink，可通过以下参数进行配置：
-- `print.identifier`: 输出标识符，默认为"质量检查结果"
-- `print.verbose`: 是否打印详细信息，默认为false
+系统采用多种设计模式确保扩展性：
 
-## 配置说明
+- **工厂模式**：用于创建规则和输出接口
+- **适配器模式**：统一规则接口
+- **观察者模式**：处理规则更新通知
+- **责任链模式**：构建规则执行链
+- **策略模式**：根据规则类型选择不同的执行策略
 
-系统配置通过application.yml文件提供，主要包含：
-
-- **Kafka配置**: 连接信息、消费组、主题等
-- **处理配置**: 并行度、状态保留时间、检查点间隔等
-- **MySQL配置**: 数据库连接信息、连接池配置等
-- **Doris配置**: 连接信息、批处理大小、批处理间隔等
-- **Sink配置**: Sink类型及其特定配置
-
-## 部署与运行
+## 快速开始
 
 ### 环境要求
 
-- Java 8+
+- JDK 8+
 - Apache Flink 1.13+
+- MySQL 8.0+
 - Apache Kafka
-- MySQL 5.7+
-- Apache Doris
 
-### 编译部署
+### 配置说明
+
+在`src/main/resources/application.yml`中配置：
+
+```yaml
+# Kafka配置
+kafka:
+  bootstrapServers: [服务器地址]
+  topic: [主题名称]
+  groupId: [消费组ID]
+
+# 数据库配置
+mysql:
+  url: [MySQL连接URL]
+  username: [用户名]
+  password: [密码]
+
+# 输出配置
+sink:
+  # 选择使用的Sink类型: doris, print
+  type: [doris或print]
+```
+
+### 运行步骤
+
+1. **编译项目**
 
 ```bash
-# 编译
 mvn clean package
+```
 
-# 运行
+2. **准备数据库**
+
+- 执行`src/main/resources/db/schema.sql`创建必要的MySQL数据库和表结构。
+- 执行`src/main/resources/db/doris_schema.sql`在Apache Doris中创建结果表。
+
+3. **启动系统**
+
+```bash
+java -jar target/data-quality-process-1.0-SNAPSHOT.jar
+```
+
+或者提交到Flink集群运行：
+
+```bash
 flink run -c org.battery.DataQualityApplication target/data-quality-process-1.0-SNAPSHOT.jar
 ```
 
-## Doris建表语句
+## 自定义规则开发
 
-```sql
--- 创建数据库
-CREATE DATABASE IF NOT EXISTS battery_data;
+### 创建新规则
 
--- 创建单一的数据表，包含原始数据和质量问题信息
-CREATE TABLE battery_ods.error_data (
-                                        vin varchar(255),
-                                        ctime datetime,
-                                        time datetime,
-                                        vehicleFactory varchar(255),
-                                        vehicleStatus INT,
-                                        chargeStatus INT,
-                                        speed INT,
-                                        mileage INT,
-                                        totalVoltage INT,
-                                        totalCurrent INT,
-                                        soc INT,
-                                        dcStatus INT,
-                                        gears INT,
-                                        insulationResistance INT,
-                                        operationMode INT,
-                                        batteryCount INT,
-                                        batteryNumber INT,
-                                        cellCount INT,
-                                        maxVoltagebatteryNum INT,
-                                        maxVoltageSystemNum INT,
-                                        batteryMaxVoltage INT,
-                                        minVoltagebatteryNum INT,
-                                        minVoltageSystemNum INT,
-                                        batteryMinVoltage INT,
-                                        maxTemperature INT,
-                                        maxTemperatureNum INT,
-                                        maxTemperatureSystemNum INT,
-                                        minTemperature INT,
-                                        minTemperatureNum INT,
-                                        minTemperatureSystemNum INT,
-                                        subsystemVoltageCount INT,
-                                        subsystemVoltageDataNum INT,
-                                        subsystemTemperatureCount INT,
-                                        subsystemTemperatureDataNum INT,
-                                        temperatureProbeCount INT,
-                                        longitude BIGINT,
-                                        latitude BIGINT,
-                                        customField String,
-                                        cellVoltages array<int>,
-                                        probeTemperatures array<int>,
-                                        deviceFailuresCodes array<int>,
-                                        driveMotorFailuresCodes array<int>,
-                                        issues ARRAY<String> , -- JSON格式的质量问题列表
-                                        issues_count INT -- 数据质量问题总数
+1. 在`org.battery.quality.rule.impl`包下创建规则类
+2. 实现`Rule`接口或继承`AbstractRule`
+3. 使用`@QualityRule`注解标注规则信息
+
+示例：
+
+```java
+@QualityRule(
+    type = "soc_validity",
+    name = "SOC有效性规则",
+    description = "检查SOC值是否在合理范围内",
+    category = "validity",
+    ruleCode = 1001
 )
-    DUPLICATE KEY(vin, ctime)
-PARTITION BY RANGE(time)()
-DISTRIBUTED BY HASH(`vin`) BUCKETS AUTO
-PROPERTIES (
-"replication_allocation" = "tag.location.offline: 1",
-"min_load_replica_num" = "-1",
-"bloom_filter_columns" = "ctime",
-"is_being_synced" = "false",
-"dynamic_partition.enable" = "true",
-"dynamic_partition.time_unit" = "DAY",
-"dynamic_partition.time_zone" = "Asia/Shanghai",
-"dynamic_partition.start" = "-90",
-"dynamic_partition.end" = "2",
-"dynamic_partition.prefix" = "p",
-"dynamic_partition.replication_allocation" = "tag.location.offline: 1",
-"dynamic_partition.buckets" = "10",
-"dynamic_partition.create_history_partition" = "false",
-"dynamic_partition.history_partition_num" = "-1",
-"dynamic_partition.reserved_history_periods" = "NULL",
-"dynamic_partition.storage_policy" = "",
-"storage_medium" = "hdd",
-"storage_format" = "V2",
-"inverted_index_storage_format" = "V1",
-"compression" = "ZSTD",
-"light_schema_change" = "true",
-"disable_auto_compaction" = "false",
-"enable_single_replica_compaction" = "false",
-"group_commit_interval_ms" = "10000",
-"group_commit_data_bytes" = "134217728"
-);
+public class SocValidityRule extends AbstractRule {
+    @Override
+    public Optional<Issue> check(Gb32960Data data, Gb32960Data previousData) {
+        // 实现规则逻辑
+    }
+}
 ```
 
-## 最近更新
+### 规则注册
 
-### 规则模块重构 (2023-08-01)
+系统启动时会自动扫描带有`@QualityRule`注解的类，并将它们注册到规则管理系统中。
 
-为了提高代码质量和可维护性，系统对规则模块进行了全面重构，主要采用了多种设计模式：
+## 系统管理
 
-1. **工厂模式**：
-   - 引入`RuleFactory`接口和`RuleFactoryRegistry`类，负责创建规则实例
-   - 支持多种规则创建方式，包括动态编译
+### 规则管理
 
-2. **策略模式**：
-   - 使用`RuleExecutionStrategy`接口和实现类处理不同类型规则的执行逻辑
-   - 通过`StrategySelector`类动态选择合适的执行策略
+- 通过MySQL数据库直接管理规则
+- 可通过更新`rule_class`表中的`enabled_factories`字段控制规则的启用/禁用
 
-3. **责任链模式**：
-   - 新增`RuleChain`接口和`DefaultRuleChain`实现，负责组织规则执行流程
-   - 支持按规则类型分组执行，并使用`RuleChainBuilder`构建规则链
+### 数据质量分析
 
-4. **观察者模式**：
-   - 使用`RuleUpdateObserver`和`RuleUpdateSubject`接口处理规则更新事件
-   - 通过`RuleUpdateManager`集中管理规则更新通知
+系统将检测到的异常数据保存至Apache Doris的`error_data`表，可以通过以下方式进行分析：
 
-5. **模板方法模式**：
-   - 重构`AbstractRule`和`AbstractStateRule`类，定义规则执行的通用流程
-   - 子类只需实现特定的检查逻辑，减少代码重复
+- 使用`src/main/resources/db/statistics_queries.sql`中提供的SQL进行数据分析
+- 主要分析维度包括：
+  - 按车厂统计异常数量
+  - 按时间分析异常趋势
+  - 异常类型统计分析
+  - 特定车辆的异常历史记录
+  - 高频异常车辆排名
+  - 异常严重程度分布
 
-6. **适配器模式**：
-   - 引入`RuleAdapter`接口和实现类，处理不同类型对象到规则的转换
-   - 通过`AdapterRegistry`管理所有适配器
+### 监控和日志
 
-7. **单例模式**：
-   - 对`RuleManager`、`RuleFactoryRegistry`等核心组件使用单例模式
-   - 确保全局唯一实例，避免资源浪费
+系统使用SLF4J和Logback进行日志记录，日志文件位于`logs`目录下。
 
-8. **服务层模式**：
-   - 引入`RuleService`接口和`DefaultRuleService`实现，提供规则相关的业务逻辑
-   - 将数据库操作封装在服务层，与规则执行逻辑分离
+## 项目结构
 
-这次重构的主要优点：
+```
+├── src/main/java/org/battery/
+│   ├── DataQualityApplication.java    # 主应用程序入口
+│   └── quality/
+│       ├── config/                    # 配置相关类
+│       ├── model/                     # 数据模型
+│       ├── processor/                 # 数据处理器
+│       ├── rule/                      # 规则相关
+│       │   ├── adapter/               # 规则适配器
+│       │   ├── annotation/            # 规则注解
+│       │   ├── chain/                 # 规则链
+│       │   ├── factory/               # 规则工厂
+│       │   ├── impl/                  # 规则实现
+│       │   │   ├── completeness/      # 完整性规则
+│       │   │   ├── consistency/       # 一致性规则
+│       │   │   ├── timeliness/        # 及时性规则
+│       │   │   └── validity/          # 有效性规则
+│       │   ├── observer/              # 规则观察者
+│       │   ├── service/               # 规则服务
+│       │   ├── strategy/              # 规则策略
+│       │   └── template/              # 规则模板
+│       ├── sink/                      # 输出接口
+│       ├── source/                    # 数据源
+│       └── util/                      # 工具类
+```
 
-- **更高的可扩展性**：可以方便地添加新的规则类型和执行策略
-- **更好的可维护性**：各组件职责明确，降低了耦合度
-- **更强的灵活性**：规则可以动态更新，不需要重启系统
-- **更高的代码质量**：遵循阿里巴巴Java编程规范，提高了代码可读性和稳定性
+## 常见问题
 
-### 时间字段格式变更 (2023-07-01)
+1. **规则不生效？**
+   - 检查规则是否正确注册到数据库
+   - 检查车厂ID是否已启用该规则
 
-为提高数据可读性和使用便利性，系统对时间字段进行了以下更新：
+2. **数据处理延迟高？**
+   - 调整Flink并行度参数
+   - 检查规则执行效率
 
-1. **时间字段格式变更**：
-   - 将 `time` 和 `ctime` 字段从时间戳(Long)改为String类型，格式为"yyyy-MM-dd HH:mm:ss"
-   - 这些字段在存储和展示时使用字符串格式，便于直观查看
+3. **如何添加新的输出目标？**
+   - 实现`Sink`接口
+   - 在`SinkFactory`中注册新的Sink实现
 
-2. **规则适配**：
-   - 更新了所有涉及时间字段的规则，使每个规则内部负责解析字符串时间为时间戳
-   - 所有规则类中使用SimpleDateFormat解析字符串格式的时间，进行计算后再生成结果
-   - 增加了异常处理，提高系统稳定性
 
-3. **好处**：
-   - 提高了数据的可读性
-   - 允许以更自然的方式查询和过滤数据
-   - 保持了时间计算的准确性
-此更新使得数据在显示和存储时更加直观，便于阅读和理解，同时通过在规则内部解析时间戳的方式保证了计算的准确性。
+## 许可证
+
+[添加许可证信息] 
