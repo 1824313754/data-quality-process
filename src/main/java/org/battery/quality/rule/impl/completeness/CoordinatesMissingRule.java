@@ -30,7 +30,6 @@ public class CoordinatesMissingRule extends BaseRule {
                                      longitude == Long.MAX_VALUE || longitude == Long.MAX_VALUE - 1;
         boolean isLatitudeMissing = latitude == null || latitude == 0L || 
                                     latitude == Long.MAX_VALUE || latitude == Long.MAX_VALUE - 1;
-//        System.out.println(2222);
 
         if (isLongitudeMissing && isLatitudeMissing) {
             return singleIssue(data, "经度和纬度均缺失");

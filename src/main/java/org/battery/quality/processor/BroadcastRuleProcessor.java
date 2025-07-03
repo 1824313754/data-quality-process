@@ -118,7 +118,6 @@ public class BroadcastRuleProcessor extends KeyedProcessFunction<
                 if (!ruleInstanceCache.containsKey(cacheKey)) {
                     changedRules.add(ruleInfo.getId());
                 }
-                
                 // 从待移除列表中移除仍然有效的缓存键
                 obsoleteRules.remove(cacheKey);
             }
