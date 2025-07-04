@@ -176,27 +176,7 @@ public class RuleManager {
             return 0; // 失败
         }
     }
-    
-    /**
-     * 获取规则的启用车厂列表
-     * @param conn 数据库连接
-     * @param ruleId 规则ID
-     * @return 启用车厂列表
-     * @throws SQLException 如果数据库操作失败
-     */
-    private static String getEnabledFactories(Connection conn, String ruleId) throws SQLException {
-        try (PreparedStatement stmt = conn.prepareStatement(
-                "SELECT enabled_factories FROM rule_class WHERE id = ?")) {
-            stmt.setString(1, ruleId);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getString("enabled_factories");
-                }
-                return "0";
-            }
-        }
-    }
-    
+
     /**
      * 读取类的源代码
      * @param clazz 类对象

@@ -20,14 +20,12 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 规则处理器，处理数据并应用质量规则
@@ -38,26 +36,17 @@ public class BroadcastRuleProcessor extends KeyedProcessFunction<
     private static final long serialVersionUID = 1L;
     private static final Logger LOGGER = LoggerFactory.getLogger(BroadcastRuleProcessor.class);
     
-    // 规则实例缓存，使用"规则ID:更新时间"作为键
-    private final Map<String, Rule> ruleInstanceCache = new ConcurrentHashMap<>();
-    
     // 保存上一条记录的状态
     private transient ValueState<Gb32960Data> previousDataState;
     
     // 定时任务执行器
     private transient ScheduledExecutorService scheduler;
     
-    // 规则信息缓存
-    private Map<String, RuleInfo> ruleInfoCache = new HashMap<>();
-    
     // 默认车厂ID
     private static final String DEFAULT_FACTORY_ID = "0";
     
-    // 车厂规则映射
-    private final Map<String, List<Rule>> factoryRulesCache = new HashMap<>();
-    
-    // 车厂状态规则映射
-    private final Map<String, List<StateRule>> factoryStateRulesCache = new HashMap<>();
+    // 缓存的规则集合（按车厂分组）
+    private final AtomicReference<Map<String, List<Rule>>> ruleCache = new AtomicReference<>(new HashMap<>());
     
     /**
      * 构造函数
@@ -104,139 +93,87 @@ public class BroadcastRuleProcessor extends KeyedProcessFunction<
         try {
             LOGGER.info("开始更新规则...");
             
-            // 从数据库加载最新规则信息（包含更新时间）
-            Map<String, RuleInfo> newRuleInfos = RuleManager.loadAllRules();
+            // 从数据库加载最新规则信息
+            Map<String, RuleInfo> ruleInfos = RuleManager.loadAllRules();
             
-            // 检查规则是否有变化，只更新变化的规则
-            Set<String> changedRules = new HashSet<>();
-            Set<String> obsoleteRules = new HashSet<>(ruleInstanceCache.keySet());
+            // 创建新的规则缓存
+            Map<String, List<Rule>> newRuleCache = new HashMap<>();
             
-            for (RuleInfo ruleInfo : newRuleInfos.values()) {
-                String cacheKey = ruleInfo.getCacheKey();
-                
-                // 如果规则不在缓存中或者已更新，则标记为需要更新
-                if (!ruleInstanceCache.containsKey(cacheKey)) {
-                    changedRules.add(ruleInfo.getId());
+            // 初始化默认车厂规则列表
+            newRuleCache.put(DEFAULT_FACTORY_ID, new ArrayList<>());
+            
+            // 处理每条规则信息
+            for (RuleInfo ruleInfo : ruleInfos.values()) {
+                // 创建规则实例
+                Rule rule = RuleManager.createRuleInstance(ruleInfo);
+                if (rule == null) {
+                    continue;
                 }
-                // 从待移除列表中移除仍然有效的缓存键
-                obsoleteRules.remove(cacheKey);
-            }
-            
-            // 移除过期的规则实例
-            for (String key : obsoleteRules) {
-                ruleInstanceCache.remove(key);
-                LOGGER.debug("移除过期规则缓存: {}", key);
-            }
-            
-            // 如果有规则变化，则重新加载
-            if (!changedRules.isEmpty() || !obsoleteRules.isEmpty()) {
-                LOGGER.info("检测到 {} 个规则变化，{} 个规则过期，重新加载规则信息", 
-                        changedRules.size(), obsoleteRules.size());
                 
-                // 清除工厂规则缓存
-                factoryRulesCache.clear();
-                factoryStateRulesCache.clear();
+                // 获取规则适用的车厂列表
+                String enabledFactories = ruleInfo.getEnabledFactories();
+                if (enabledFactories == null || enabledFactories.isEmpty()) {
+                    // 如果没有指定车厂，添加到默认车厂规则列表
+                    newRuleCache.get(DEFAULT_FACTORY_ID).add(rule);
+                    continue;
+                }
                 
-                // 更新规则信息缓存
-                ruleInfoCache = newRuleInfos;
-                
-                // 为变化的规则创建新的实例
-                for (String ruleId : changedRules) {
-                    RuleInfo ruleInfo = ruleInfoCache.get(ruleId);
-                    if (ruleInfo != null) {
-                        // 创建规则实例
-                        Rule rule = RuleManager.createRuleInstance(ruleInfo);
-                        if (rule != null) {
-                            ruleInstanceCache.put(ruleInfo.getCacheKey(), rule);
-                            LOGGER.debug("创建并缓存规则实例: {}", ruleInfo.getCacheKey());
-                        }
+                // 处理规则适用的每个车厂
+                for (String factoryId : enabledFactories.split(",")) {
+                    factoryId = factoryId.trim();
+                    if (factoryId.isEmpty()) {
+                        continue;
                     }
+                    
+                    // 如果是默认车厂ID，添加到默认车厂规则列表
+                    if (factoryId.equals(DEFAULT_FACTORY_ID)) {
+                        newRuleCache.get(DEFAULT_FACTORY_ID).add(rule);
+                        continue;
+                    }
+                    
+                    // 如果车厂不存在于缓存中，创建新的规则列表
+                    if (!newRuleCache.containsKey(factoryId)) {
+                        newRuleCache.put(factoryId, new ArrayList<>());
+                    }
+                    
+                    // 添加规则到车厂规则列表
+                    newRuleCache.get(factoryId).add(rule);
                 }
-                
-                // 获取所有车厂ID
-                Set<String> factoryIds = getActiveFactoryIds();
-                
-                // 为每个车厂构建规则缓存
-                for (String factoryId : factoryIds) {
-                    buildFactoryRuleCache(factoryId);
-                }
-                
-                LOGGER.info("规则更新完成，共为 {} 个车厂构建了规则缓存", factoryIds.size());
-            } else {
-                LOGGER.info("规则无变化，跳过更新");
             }
+            
+            // 更新规则缓存
+            ruleCache.set(newRuleCache);
+            
+            LOGGER.info("规则更新完成，共加载 {} 个车厂的规则", newRuleCache.size());
         } catch (Exception e) {
             LOGGER.error("更新规则失败", e);
         }
     }
     
     /**
-     * 为指定车厂构建规则缓存
+     * 获取适用于指定车厂的规则列表
      * @param factoryId 车厂ID
+     * @return 规则列表
      */
-    private void buildFactoryRuleCache(String factoryId) {
-        List<Rule> rules = new ArrayList<>();
-        List<StateRule> stateRules = new ArrayList<>();
+    private List<Rule> getRulesForFactory(String factoryId) {
+        List<Rule> result = new ArrayList<>();
+        Map<String, List<Rule>> currentCache = ruleCache.get();
         
-        for (RuleInfo ruleInfo : ruleInfoCache.values()) {
-            if (ruleInfo.isEnabledForFactory(factoryId) || ruleInfo.isEnabledForFactory(DEFAULT_FACTORY_ID)) {
-                // 使用当前已缓存的规则实例
-                Rule rule = findRuleInstance(ruleInfo.getId());
-                if (rule != null) {
-                    rules.add(rule);
-                    
-                    if (rule instanceof StateRule) {
-                        stateRules.add((StateRule) rule);
-                    }
-                }
+        // 添加默认规则
+        List<Rule> defaultRules = currentCache.get(DEFAULT_FACTORY_ID);
+        if (defaultRules != null) {
+            result.addAll(defaultRules);
+        }
+        
+        // 如果不是默认车厂，添加车厂特定规则
+        if (!DEFAULT_FACTORY_ID.equals(factoryId)) {
+            List<Rule> factoryRules = currentCache.get(factoryId);
+            if (factoryRules != null) {
+                result.addAll(factoryRules);
             }
         }
         
-        factoryRulesCache.put(factoryId, rules);
-        factoryStateRulesCache.put(factoryId, stateRules);
-        
-        LOGGER.debug("车厂 {} 规则缓存构建完成，普通规则 {} 个，状态规则 {} 个",
-                factoryId, rules.size(), stateRules.size());
-    }
-    
-    /**
-     * 查找规则实例（根据规则ID查找最新版本的规则实例）
-     * @param ruleId 规则ID
-     * @return 规则实例
-     */
-    private Rule findRuleInstance(String ruleId) {
-        for (String key : ruleInstanceCache.keySet()) {
-            if (key.startsWith(ruleId + ":") || key.equals(ruleId)) {
-                return ruleInstanceCache.get(key);
-            }
-        }
-        return null;
-    }
-    
-    /**
-     * 从规则信息缓存中提取所有活跃的车厂ID
-     * @return 车厂ID集合
-     */
-    private Set<String> getActiveFactoryIds() {
-        Set<String> factoryIds = new HashSet<>();
-        // 添加默认车厂ID
-        factoryIds.add(DEFAULT_FACTORY_ID);
-        
-        // 从已加载的规则信息中提取车厂ID
-        for (RuleInfo ruleInfo : ruleInfoCache.values()) {
-            String enabledFactories = ruleInfo.getEnabledFactories();
-            if (enabledFactories != null && !enabledFactories.isEmpty()) {
-                for (String id : enabledFactories.split(",")) {
-                    id = id.trim();
-                    if (!id.isEmpty() && !id.equals("0")) {  // 跳过默认的"0"
-                        factoryIds.add(id);
-                    }
-                }
-            }
-        }
-        
-        LOGGER.info("共获取到 {} 个车厂ID", factoryIds.size());
-        return factoryIds;
+        return result;
     }
     
     @Override
@@ -252,48 +189,40 @@ public class BroadcastRuleProcessor extends KeyedProcessFunction<
         
         // 获取车厂代码
         String vehicleFactory = data.getVehicleFactory();
-        
-        // 如果没有该车厂的规则缓存，使用默认规则
-        if (vehicleFactory == null || vehicleFactory.isEmpty() || !factoryRulesCache.containsKey(vehicleFactory)) {
+        if (vehicleFactory == null || vehicleFactory.isEmpty()) {
             vehicleFactory = DEFAULT_FACTORY_ID;
-            if (data.getVehicleFactory() != null) {
-                LOGGER.debug("未找到车厂 {} 的规则缓存，使用通用规则", data.getVehicleFactory());
-            }
         }
         
         // 收集所有发现的问题
         List<Issue> allIssues = new ArrayList<>();
         
-        // 1. 获取该车厂的普通规则
-        List<Rule> rules = factoryRulesCache.getOrDefault(vehicleFactory, new ArrayList<>());
+        // 获取适用于当前车厂的规则
+        List<Rule> rules = getRulesForFactory(vehicleFactory);
         
-        // 2. 执行所有普通规则检查
-        for (Rule rule : rules) {
-            List<Issue> issues = rule.check(data);
-            if (issues != null && !issues.isEmpty()) {
-                allIssues.addAll(issues);
-            }
-        }
-        
-        // 3. 获取上一条记录
+        // 获取上一条记录
         Gb32960Data previousData = previousDataState.value();
         
-        // 4. 获取该车厂的状态规则
-        List<StateRule> stateRules = factoryStateRulesCache.getOrDefault(
-                vehicleFactory, new ArrayList<>());
-        
-        // 5. 执行所有状态规则检查
-        for (StateRule rule : stateRules) {
-            List<Issue> issues = rule.checkState(data, previousData);
-            if (issues != null && !issues.isEmpty()) {
-                allIssues.addAll(issues);
+        // 执行规则检查
+        for (Rule rule : rules) {
+            if (rule instanceof StateRule) {
+                // 执行状态规则检查
+                List<Issue> issues = ((StateRule) rule).checkState(data, previousData);
+                if (issues != null && !issues.isEmpty()) {
+                    allIssues.addAll(issues);
+                }
+            } else {
+                // 执行普通规则检查
+                List<Issue> issues = rule.check(data);
+                if (issues != null && !issues.isEmpty()) {
+                    allIssues.addAll(issues);
+                }
             }
         }
         
-        // 6. 保存当前记录为下一次的上一条记录
+        // 保存当前记录为下一次的上一条记录
         previousDataState.update(data);
         
-        // 7. 无论是否有问题，都返回带有原始数据的结果
+        // 无论是否有问题，都返回带有原始数据的结果
         Gb32960DataWithIssues result = Gb32960DataWithIssues.builder()
                 .data(data)
                 .issues(allIssues)
