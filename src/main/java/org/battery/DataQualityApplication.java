@@ -13,6 +13,7 @@ import org.battery.quality.config.AppConfig;
 import org.battery.quality.config.AppConfigLoader;
 import org.battery.quality.model.Gb32960Data;
 import org.battery.quality.model.Gb32960DataWithIssues;
+import org.battery.quality.model.Issue;
 import org.battery.quality.processor.BroadcastRuleProcessor;
 import org.battery.quality.sink.SinkFactory;
 import org.battery.quality.source.Gb32960DeserializationSchema;
@@ -70,23 +71,31 @@ public class DataQualityApplication {
 
             @Override
             public String map(Gb32960DataWithIssues value) throws Exception {
-                // 把整个对象转成JsonNode树
-                JsonNode root = mapper.valueToTree(value);
-
-                // 取出 data 节点（应该是一个ObjectNode）
-                ObjectNode dataNode = (ObjectNode) root.get("data");
-
+                // 获取原始数据
+                Gb32960Data data = value.getData();
+                
+                // 创建一个新的ObjectNode作为data的JSON表示
+                ObjectNode dataNode = mapper.valueToTree(data);
+                
                 if (dataNode == null || dataNode.isNull()) {
-                    throw new RuntimeException("Missing `data` field in Gb32960DataWithIssues");
+                    throw new RuntimeException("Missing data in Gb32960DataWithIssues");
                 }
-
-                // 取出 issues 节点
-                JsonNode issuesNode = root.get("issues");
-
-                // 把 issues 节点放到 data 节点里，字段名叫 "issues"
+                
+                // 创建一个新的ObjectNode用于存储问题列表，格式为：code -> value
+                ObjectNode issuesNode = mapper.createObjectNode();
+                
+                // 转换问题列表为 JSON 对象
+                if (value.getIssues() != null && !value.getIssues().isEmpty()) {
+                    for (Issue issue : value.getIssues()) {
+                        // 使用 code 作为 key，value 作为 value
+                        issuesNode.put(String.valueOf(issue.getCode()), issue.getValue());
+                    }
+                }
+                
+                // 将 issues 对象添加到 data 节点
                 dataNode.set("issues", issuesNode);
-
-                // 返回合并后的 data 节点的 JSON 字符串
+                
+                // 返回最终的 JSON 字符串
                 return mapper.writeValueAsString(dataNode);
             }
         });

@@ -52,13 +52,8 @@ public abstract class BaseRule implements Rule {
      */
     protected Issue createIssue(Gb32960Data data, String value) {
         return Issue.builder()
-                .id(getType())
                 .code(getCode())
-                .vin(data.getVin())
-                .description(getDescription())
                 .value(value)
-                .type(getCategory().name())
-                .timestamp(null)
                 .build();
     }
     

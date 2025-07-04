@@ -158,7 +158,7 @@ CREATE TABLE battery_ods.error_data (
                                         probeTemperatures array<int>,
                                         deviceFailuresCodes array<int>,
                                         driveMotorFailuresCodes array<int>,
-                                        issues ARRAY<String> , -- JSON格式的质量问题列表
+                                        issues json, -- JSON格式的质量问题列表
                                         issues_count INT -- 数据质量问题总数
 )
     DUPLICATE KEY(vin, ctime)

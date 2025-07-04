@@ -70,11 +70,8 @@ public class DateTimeFieldsValidityRule extends BaseRule {
             }
             
             issues.add(Issue.builder()
-                .vin(data.getVin())
                 .code(getCode())
-                .type(getType())
-                .description("时间字段值无效: " + invalidFields)
-                .timestamp(null) // 设置为null，避免类型转换问题
+                .value("时间字段值无效: " + invalidFields)
                 .build());
             
             // 使用当前时间作为ctime
@@ -92,11 +89,8 @@ public class DateTimeFieldsValidityRule extends BaseRule {
             
         } catch (Exception e) {
             issues.add(Issue.builder()
-                .vin(data.getVin())
                 .code(getCode())
-                .type(getType())
-                .description("无法构造有效的日期时间: " + e.getMessage())
-                .timestamp(null) // 设置为null，避免类型转换问题
+                .value("无法构造有效的日期时间: " + e.getMessage())
                 .build());
             
             // 使用当前时间作为ctime
@@ -127,11 +121,8 @@ public class DateTimeFieldsValidityRule extends BaseRule {
      */
     protected Issue createIssue(Gb32960Data data, String description) {
         return Issue.builder()
-            .vin(data.getVin())
             .code(getCode())
-            .type(getType())
-            .description(description)
-            .timestamp(null) // 设置为null，避免类型转换问题
+            .value(description)
             .build();
     }
 } 
