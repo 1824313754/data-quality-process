@@ -2,7 +2,7 @@ package org.battery.quality.rule.impl.validity;
 
 import org.battery.quality.model.Gb32960Data;
 import org.battery.quality.model.Issue;
-import org.battery.quality.rule.BaseRule;
+import org.battery.quality.rule.template.AbstractRule;
 import org.battery.quality.model.RuleType;
 import org.battery.quality.rule.annotation.QualityRule;
 
@@ -18,13 +18,13 @@ import java.util.List;
     category = RuleType.VALIDITY,
     priority = 5
 )
-public class MaxTemperatureValidityRule extends BaseRule {
+public class MaxTemperatureValidityRule extends AbstractRule {
     
     private static final int MIN_TEMPERATURE = 0;
     private static final int MAX_TEMPERATURE = 250; // 单位 ℃ - 40
 
     @Override
-    public List<Issue> check(Gb32960Data data) {
+    protected List<Issue> doCheck(Gb32960Data data) {
         Integer temperature = data.getMaxTemperature();
         if (temperature == null) {
             return noIssue();

@@ -2,7 +2,7 @@ package org.battery.quality.rule.impl.completeness;
 
 import org.battery.quality.model.Gb32960Data;
 import org.battery.quality.model.Issue;
-import org.battery.quality.rule.BaseRule;
+import org.battery.quality.rule.template.AbstractRule;
 import org.battery.quality.model.RuleType;
 import org.battery.quality.rule.annotation.QualityRule;
 
@@ -18,10 +18,10 @@ import java.util.List;
     category = RuleType.COMPLETENESS,
     priority = 10
 )
-public class ProbeTemperaturesMissingRule extends BaseRule {
+public class ProbeTemperaturesMissingRule extends AbstractRule {
     
     @Override
-    public List<Issue> check(Gb32960Data data) {
+    protected List<Issue> doCheck(Gb32960Data data) {
         List<Integer> probeTemperatures = data.getProbeTemperatures();
         
         if (probeTemperatures == null || probeTemperatures.isEmpty()) {
