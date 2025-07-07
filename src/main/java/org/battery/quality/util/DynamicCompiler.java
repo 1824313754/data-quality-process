@@ -133,6 +133,19 @@ public class DynamicCompiler {
             }
         }
         
+        // 添加当前项目的target/classes目录
+        String userDir = System.getProperty("user.dir");
+        if (userDir != null && !userDir.isEmpty()) {
+            String targetClasses = userDir + File.separator + "target" + File.separator + "classes";
+            File targetClassesDir = new File(targetClasses);
+            if (targetClassesDir.exists() && targetClassesDir.isDirectory()) {
+                if (classpath.length() > 0) {
+                    classpath.append(File.pathSeparator);
+                }
+                classpath.append(targetClasses);
+            }
+        }
+        
         return classpath.toString();
     }
     
@@ -213,4 +226,4 @@ public class DynamicCompiler {
             return byteStream;
         }
     }
-} 
+}
