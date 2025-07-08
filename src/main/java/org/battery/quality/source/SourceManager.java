@@ -1,6 +1,5 @@
 package org.battery.quality.source;
 
-import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
@@ -9,9 +8,6 @@ import org.battery.quality.model.BatteryData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Properties;
 
@@ -39,10 +35,10 @@ public class SourceManager {
         kafkaProps.setProperty("group.id", config.getKafka().getGroupId());
         kafkaProps.setProperty("auto.offset.reset", config.getKafka().getAutoOffsetReset());
         
-        // 创建消费者
+        // 创建消费者，使用支持获取Kafka元数据的反序列化模式
         FlinkKafkaConsumer<BatteryData> consumer = new FlinkKafkaConsumer<>(
             config.getKafka().getTopic(),
-            new BatteryDataDeserializationSchema(),
+            new KafkaBatteryDataDeserializationSchema(),
             kafkaProps
         );
         

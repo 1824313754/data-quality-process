@@ -5,7 +5,6 @@ import lombok.Data;
 
 import java.io.Serializable;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 电池数据模型类
@@ -77,37 +76,4 @@ public class BatteryData implements Serializable {
     // 其他信息
     private String customField;             // 自定义字段
     private String ctime;                   // 处理时间，格式为"yyyy-MM-dd HH:mm:ss"
-
-    /**
-     * 计算实际温度值（校正-40℃偏移）
-     */
-    public List<Integer> computeProbeTemperatures() {
-        if (probeTemperatures == null) return null;
-        return probeTemperatures.stream()
-                .map(t -> t == null ? null : t - 40)
-                .collect(Collectors.toList());
-    }
-    
-    /**
-     * 计算实际电流值（校正-10000偏移）
-     */
-    public Integer computeCurrent() {
-        return totalCurrent == null ? null : totalCurrent - 10000;
-    }
-    
-    /**
-     * 设置电流值并进行校正
-     */
-    public void setTotalCurrent(Integer totalCurrent) {
-        this.totalCurrent = totalCurrent;
-        this.totalCurrent = computeCurrent();
-    }
-    
-    /**
-     * 设置温度列表并进行校正
-     */
-    public void setProbeTemperatures(List<Integer> probeTemperatures) {
-        this.probeTemperatures = probeTemperatures;
-        this.probeTemperatures = computeProbeTemperatures();
-    }
 } 
