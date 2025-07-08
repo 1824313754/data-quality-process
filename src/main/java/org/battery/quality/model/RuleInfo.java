@@ -11,27 +11,34 @@ public class RuleInfo implements Serializable {
     private static final long serialVersionUID = 1L;
     
     private String id;                // 规则ID
-    private String name;              // 规则类名
+    private String name;              // 规则名称
+    private String description;       // 规则描述
+    private String category;          // 规则分类
+    private int ruleCode;             // 异常编码
+    private int priority;             // 规则优先级
     private String sourceCode;        // 规则源代码
     private String enabledFactories;  // 启用的车厂ID列表，逗号分隔，0表示所有车厂
+    private Timestamp createTime;     // 创建时间
     private Timestamp updateTime;     // 更新时间
+    private int status;               // 规则状态，1表示启用，0表示禁用
     
     public RuleInfo() {
     }
     
-    public RuleInfo(String id, String name, String sourceCode, String enabledFactories) {
+    public RuleInfo(String id, String name, String description, String category, 
+                   int ruleCode, int priority, String sourceCode, 
+                   String enabledFactories, Timestamp createTime, Timestamp updateTime, int status) {
         this.id = id;
         this.name = name;
+        this.description = description;
+        this.category = category;
+        this.ruleCode = ruleCode;
+        this.priority = priority;
         this.sourceCode = sourceCode;
         this.enabledFactories = enabledFactories;
-    }
-    
-    public RuleInfo(String id, String name, String sourceCode, String enabledFactories, Timestamp updateTime) {
-        this.id = id;
-        this.name = name;
-        this.sourceCode = sourceCode;
-        this.enabledFactories = enabledFactories;
+        this.createTime = createTime;
         this.updateTime = updateTime;
+        this.status = status;
     }
     
     public String getId() {
@@ -50,6 +57,38 @@ public class RuleInfo implements Serializable {
         this.name = name;
     }
     
+    public String getDescription() {
+        return description;
+    }
+    
+    public void setDescription(String description) {
+        this.description = description;
+    }
+    
+    public String getCategory() {
+        return category;
+    }
+    
+    public void setCategory(String category) {
+        this.category = category;
+    }
+    
+    public int getRuleCode() {
+        return ruleCode;
+    }
+    
+    public void setRuleCode(int ruleCode) {
+        this.ruleCode = ruleCode;
+    }
+    
+    public int getPriority() {
+        return priority;
+    }
+    
+    public void setPriority(int priority) {
+        this.priority = priority;
+    }
+    
     public String getSourceCode() {
         return sourceCode;
     }
@@ -66,12 +105,28 @@ public class RuleInfo implements Serializable {
         this.enabledFactories = enabledFactories;
     }
     
+    public Timestamp getCreateTime() {
+        return createTime;
+    }
+    
+    public void setCreateTime(Timestamp createTime) {
+        this.createTime = createTime;
+    }
+    
     public Timestamp getUpdateTime() {
         return updateTime;
     }
     
     public void setUpdateTime(Timestamp updateTime) {
         this.updateTime = updateTime;
+    }
+    
+    public int getStatus() {
+        return status;
+    }
+    
+    public void setStatus(int status) {
+        this.status = status;
     }
     
     /**
@@ -116,8 +171,13 @@ public class RuleInfo implements Serializable {
         return "RuleInfo{" +
                 "id='" + id + '\'' +
                 ", name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", category='" + category + '\'' +
+                ", ruleCode=" + ruleCode +
+                ", priority=" + priority +
                 ", enabledFactories='" + enabledFactories + '\'' +
                 ", updateTime='" + (updateTime != null ? updateTime : "null") + '\'' +
+                ", status=" + status +
                 '}';
     }
 } 

@@ -1,30 +1,30 @@
 package org.battery.quality.rule.impl.validity;
 
-import org.battery.quality.model.Gb32960Data;
-import org.battery.quality.model.Issue;
-import org.battery.quality.rule.BaseRule;
-import org.battery.quality.model.RuleType;
-import org.battery.quality.rule.annotation.QualityRule;
+import org.battery.quality.model.BatteryData;
+import org.battery.quality.model.QualityIssue;
+import org.battery.quality.rule.AbstractRule;
+import org.battery.quality.rule.RuleCategory;
+import org.battery.quality.rule.annotation.RuleDefinition;
 
 import java.util.List;
 
 /**
  * 里程有效性检查规则
  */
-@QualityRule(
+@RuleDefinition(
     type = "MILEAGE_VALIDITY",
     code = 1007,
     description = "里程无效",
-    category = RuleType.VALIDITY,
+    category = RuleCategory.VALIDITY,
     priority = 5
 )
-public class MileageValidityRule extends BaseRule {
+public class MileageValidityRule extends AbstractRule {
     
     private static final int MIN_MILEAGE = 0;
     private static final int MAX_MILEAGE = 9999999; // 最大里程
 
     @Override
-    public List<Issue> check(Gb32960Data data) {
+    public List<QualityIssue> check(BatteryData data) {
         Integer mileage = data.getMileage();
         if (mileage == null) {
             return noIssue();

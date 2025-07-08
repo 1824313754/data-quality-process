@@ -2,7 +2,6 @@ package org.battery.quality.sink;
 
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
-import org.battery.quality.model.Gb32960DataWithIssues;
 
 /**
  * 数据输出接口

@@ -1,28 +1,28 @@
 package org.battery.quality.rule.impl.consistency;
 
-import org.battery.quality.model.Gb32960Data;
-import org.battery.quality.model.Issue;
-import org.battery.quality.rule.BaseRule;
-import org.battery.quality.model.RuleType;
-import org.battery.quality.rule.annotation.QualityRule;
+import org.battery.quality.model.BatteryData;
+import org.battery.quality.model.QualityIssue;
+import org.battery.quality.rule.AbstractRule;
+import org.battery.quality.rule.RuleCategory;
+import org.battery.quality.rule.annotation.RuleDefinition;
 
 import java.util.List;
 
 /**
  * 充电状态一致性检查规则
  */
-@QualityRule(
+@RuleDefinition(
     type = "CHARGE_STATUS_CONSISTENCY",
     code = 3002,
     description = "充电状态与电流不一致",
-    category = RuleType.CONSISTENCY,
+    category = RuleCategory.CONSISTENCY,
     priority = 8
 )
-public class ChargeStatusConsistencyRule extends BaseRule {
+public class ChargeStatusConsistencyRule extends AbstractRule {
 
     @Override
-    public List<Issue> check(Gb32960Data data) {
-        Integer current = data.getCurrent(); // 已经计算过偏移，<0表示放电，>0表示充电
+    public List<QualityIssue> check(BatteryData data) {
+        Integer current = data.getTotalCurrent(); // 已经计算过偏移，<0表示放电，>0表示充电
         Integer chargeStatus = data.getChargeStatus();
         
         if (current == null || chargeStatus == null) {
@@ -39,7 +39,7 @@ public class ChargeStatusConsistencyRule extends BaseRule {
             return singleIssue(data, 
                     String.format("电流为%d（放电），但充电状态为%d", current, chargeStatus));
         }
-//        System.out.println(111);
+        
         return noIssue();
     }
 } 

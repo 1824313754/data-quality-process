@@ -1,27 +1,27 @@
 package org.battery.quality.rule.impl.validity;
 
-import org.battery.quality.model.Gb32960Data;
-import org.battery.quality.model.Issue;
-import org.battery.quality.rule.BaseRule;
-import org.battery.quality.model.RuleType;
-import org.battery.quality.rule.annotation.QualityRule;
+import org.battery.quality.model.BatteryData;
+import org.battery.quality.model.QualityIssue;
+import org.battery.quality.rule.AbstractRule;
+import org.battery.quality.rule.RuleCategory;
+import org.battery.quality.rule.annotation.RuleDefinition;
 
 import java.util.List;
 
 /**
  * DC状态有效性检查规则
  */
-@QualityRule(
+@RuleDefinition(
     type = "DC_STATUS_VALIDITY",
     code = 1008,
     description = "DC状态无效",
-    category = RuleType.VALIDITY,
+    category = RuleCategory.VALIDITY,
     priority = 5
 )
-public class DcStatusValidityRule extends BaseRule {
+public class DcStatusValidityRule extends AbstractRule {
 
     @Override
-    public List<Issue> check(Gb32960Data data) {
+    public List<QualityIssue> check(BatteryData data) {
         Integer status = data.getDcStatus();
         if (status == null) {
             return noIssue();

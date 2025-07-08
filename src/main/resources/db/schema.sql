@@ -15,9 +15,11 @@ CREATE TABLE IF NOT EXISTS rule_class (
     enabled_factories VARCHAR(1000) NOT NULL DEFAULT '0' COMMENT '启用的车厂ID列表，用逗号分隔，0表示所有车厂',
     create_time DATETIME NOT NULL COMMENT '创建时间',
     update_time DATETIME NOT NULL COMMENT '更新时间',
+    status TINYINT NOT NULL DEFAULT 1 COMMENT '规则状态：1-启用，0-禁用',
     PRIMARY KEY (id),
     INDEX idx_category (category),
-    INDEX idx_rule_code (rule_code)
+    INDEX idx_rule_code (rule_code),
+    INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='规则表';
 
 -- 车厂ID参考：

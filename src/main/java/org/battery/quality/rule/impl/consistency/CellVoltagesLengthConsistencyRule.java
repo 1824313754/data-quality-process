@@ -1,27 +1,27 @@
 package org.battery.quality.rule.impl.consistency;
 
-import org.battery.quality.model.Gb32960Data;
-import org.battery.quality.model.Issue;
-import org.battery.quality.rule.BaseStateRule;
-import org.battery.quality.model.RuleType;
-import org.battery.quality.rule.annotation.QualityRule;
+import org.battery.quality.model.BatteryData;
+import org.battery.quality.model.QualityIssue;
+import org.battery.quality.rule.AbstractStateRule;
+import org.battery.quality.rule.RuleCategory;
+import org.battery.quality.rule.annotation.RuleDefinition;
 
 import java.util.List;
 
 /**
  * 单体电压数组长度一致性检查规则
  */
-@QualityRule(
+@RuleDefinition(
         type = "CELL_VOLTAGES_LENGTH_CONSISTENCY",
     code = 3004,
     description = "单体电压数组长度不一致",
-    category = RuleType.CONSISTENCY,
+    category = RuleCategory.CONSISTENCY,
     priority = 6
 )
-public class CellVoltagesLengthConsistencyRule extends BaseStateRule {
+public class CellVoltagesLengthConsistencyRule extends AbstractStateRule {
 
     @Override
-    public List<Issue> checkState(Gb32960Data currentData, Gb32960Data previousData) {
+    public List<QualityIssue> checkState(BatteryData currentData, BatteryData previousData) {
         // 如果没有前一条数据，则跳过检查
         if (previousData == null) {
             return noIssue();

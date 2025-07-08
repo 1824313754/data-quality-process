@@ -1,27 +1,27 @@
 package org.battery.quality.rule.impl.consistency;
 
-import org.battery.quality.model.Gb32960Data;
-import org.battery.quality.model.Issue;
-import org.battery.quality.rule.BaseStateRule;
-import org.battery.quality.model.RuleType;
-import org.battery.quality.rule.annotation.QualityRule;
+import org.battery.quality.model.BatteryData;
+import org.battery.quality.model.QualityIssue;
+import org.battery.quality.rule.AbstractStateRule;
+import org.battery.quality.rule.RuleCategory;
+import org.battery.quality.rule.annotation.RuleDefinition;
 
 import java.util.List;
 
 /**
  * 温感数组长度一致性检查规则
  */
-@QualityRule(
+@RuleDefinition(
     type = "PROBE_TEMPERATURES_LENGTH_CONSISTENCY",
     code = 3003,
     description = "温感数组长度不一致",
-    category = RuleType.CONSISTENCY,
+    category = RuleCategory.CONSISTENCY,
     priority = 5
 )
-public class ProbeTemperaturesLengthConsistencyRule extends BaseStateRule {
+public class ProbeTemperaturesLengthConsistencyRule extends AbstractStateRule {
 
     @Override
-    public List<Issue> checkState(Gb32960Data current, Gb32960Data previous) {
+    public List<QualityIssue> checkState(BatteryData current, BatteryData previous) {
         // 没有前一条数据，无法进行比较
         if (previous == null) {
             return noIssue();

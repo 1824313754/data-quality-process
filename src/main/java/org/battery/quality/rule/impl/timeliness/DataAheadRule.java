@@ -1,10 +1,10 @@
 package org.battery.quality.rule.impl.timeliness;
 
-import org.battery.quality.model.Gb32960Data;
-import org.battery.quality.model.Issue;
-import org.battery.quality.rule.BaseRule;
-import org.battery.quality.model.RuleType;
-import org.battery.quality.rule.annotation.QualityRule;
+import org.battery.quality.model.BatteryData;
+import org.battery.quality.model.QualityIssue;
+import org.battery.quality.rule.AbstractRule;
+import org.battery.quality.rule.RuleCategory;
+import org.battery.quality.rule.annotation.RuleDefinition;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -13,19 +13,19 @@ import java.util.List;
 /**
  * 数据时间超前检查规则
  */
-@QualityRule(
+@RuleDefinition(
     type = "DATA_AHEAD",
     code = 2003,
     description = "数据时间超前",
-    category = RuleType.TIMELINESS,
+    category = RuleCategory.TIMELINESS,
     priority = 13
 )
-public class DataAheadRule extends BaseRule {
+public class DataAheadRule extends AbstractRule {
     
     private static final long MIN_AHEAD_MS = -60 * 1000; // -1分钟，单位毫秒
 
     @Override
-    public List<Issue> check(Gb32960Data data) {
+    public List<QualityIssue> check(BatteryData data) {
         String ctimeStr = data.getCtime();
         String timeStr = data.getTime();
         

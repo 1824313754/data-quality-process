@@ -1,29 +1,29 @@
 package org.battery.quality.rule.impl.completeness;
 
-import org.battery.quality.model.Gb32960Data;
-import org.battery.quality.model.Issue;
-import org.battery.quality.rule.BaseRule;
-import org.battery.quality.model.RuleType;
-import org.battery.quality.rule.annotation.QualityRule;
+import org.battery.quality.model.BatteryData;
+import org.battery.quality.model.QualityIssue;
+import org.battery.quality.rule.AbstractRule;
+import org.battery.quality.rule.RuleCategory;
+import org.battery.quality.rule.annotation.RuleDefinition;
 
 import java.util.List;
 
 /**
  * 电压数组缺失率检查规则
  */
-@QualityRule(
+@RuleDefinition(
     type = "CELL_VOLTAGES_MISSING",
     code = 4003,
     description = "电压数组缺失率检查",
-    category = RuleType.COMPLETENESS,
+    category = RuleCategory.COMPLETENESS,
     priority = 10
 )
-public class CellVoltagesMissingRule extends BaseRule {
+public class CellVoltagesMissingRule extends AbstractRule {
     
     @Override
-    public List<Issue> check(Gb32960Data data) {
+    public List<QualityIssue> check(BatteryData data) {
         List<Integer> cellVoltages = data.getCellVoltages();
-        
+        System.out.println(111);
         if (cellVoltages == null || cellVoltages.isEmpty()) {
             return singleIssue(data, "cellVoltages为空");
         }

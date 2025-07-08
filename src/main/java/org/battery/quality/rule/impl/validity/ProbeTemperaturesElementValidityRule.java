@@ -1,10 +1,10 @@
 package org.battery.quality.rule.impl.validity;
 
-import org.battery.quality.model.Gb32960Data;
-import org.battery.quality.model.Issue;
-import org.battery.quality.rule.BaseRule;
-import org.battery.quality.model.RuleType;
-import org.battery.quality.rule.annotation.QualityRule;
+import org.battery.quality.model.BatteryData;
+import org.battery.quality.model.QualityIssue;
+import org.battery.quality.rule.AbstractRule;
+import org.battery.quality.rule.RuleCategory;
+import org.battery.quality.rule.annotation.RuleDefinition;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -13,20 +13,20 @@ import java.util.stream.IntStream;
 /**
  * 温度数组元素值有效性检查规则
  */
-@QualityRule(
+@RuleDefinition(
     type = "PROBE_TEMPERATURES_ELEMENT_VALIDITY",
     code = 1015,
     description = "温度数组存在无效值",
-    category = RuleType.VALIDITY,
+    category = RuleCategory.VALIDITY,
     priority = 3
 )
-public class ProbeTemperaturesElementValidityRule extends BaseRule {
+public class ProbeTemperaturesElementValidityRule extends AbstractRule {
     
     private static final int MIN_TEMPERATURE = 0;
     private static final int MAX_TEMPERATURE = 250; // 单位 ℃ - 40
 
     @Override
-    public List<Issue> check(Gb32960Data data) {
+    public List<QualityIssue> check(BatteryData data) {
         List<Integer> temperatures = data.getProbeTemperatures();
         if (temperatures == null || temperatures.isEmpty()) {
             return noIssue();

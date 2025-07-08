@@ -1,10 +1,10 @@
 package org.battery.quality.rule.impl.timeliness;
 
-import org.battery.quality.model.Gb32960Data;
-import org.battery.quality.model.Issue;
-import org.battery.quality.rule.BaseStateRule;
-import org.battery.quality.model.RuleType;
-import org.battery.quality.rule.annotation.QualityRule;
+import org.battery.quality.model.BatteryData;
+import org.battery.quality.model.QualityIssue;
+import org.battery.quality.rule.AbstractStateRule;
+import org.battery.quality.rule.RuleCategory;
+import org.battery.quality.rule.annotation.RuleDefinition;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -13,17 +13,17 @@ import java.util.List;
 /**
  * 时间戳单调性检查规则
  */
-@QualityRule(
+@RuleDefinition(
     type = "TIMESTAMP_MONOTONICITY",
     code = 2001,
     description = "时间戳非单调递增",
-    category = RuleType.TIMELINESS,
+    category = RuleCategory.TIMELINESS,
     priority = 7
 )
-public class TimestampMonotonicityRule extends BaseStateRule {
+public class TimestampMonotonicityRule extends AbstractStateRule {
 
     @Override
-    public List<Issue> checkState(Gb32960Data currentData, Gb32960Data previousData) {
+    public List<QualityIssue> checkState(BatteryData currentData, BatteryData previousData) {
         if (previousData == null || currentData.getCtime() == null || previousData.getCtime() == null) {
             return noIssue();
         }

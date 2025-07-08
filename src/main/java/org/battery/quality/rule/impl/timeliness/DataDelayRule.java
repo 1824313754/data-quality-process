@@ -1,10 +1,10 @@
 package org.battery.quality.rule.impl.timeliness;
 
-import org.battery.quality.model.Gb32960Data;
-import org.battery.quality.model.Issue;
-import org.battery.quality.rule.BaseRule;
-import org.battery.quality.model.RuleType;
-import org.battery.quality.rule.annotation.QualityRule;
+import org.battery.quality.model.BatteryData;
+import org.battery.quality.model.QualityIssue;
+import org.battery.quality.rule.AbstractRule;
+import org.battery.quality.rule.RuleCategory;
+import org.battery.quality.rule.annotation.RuleDefinition;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -13,19 +13,19 @@ import java.util.List;
 /**
  * 数据延迟度检查规则
  */
-@QualityRule(
+@RuleDefinition(
     type = "DATA_DELAY",
     code = 2002,
     description = "数据延迟度过高",
-    category = RuleType.TIMELINESS,
+    category = RuleCategory.TIMELINESS,
     priority = 12
 )
-public class DataDelayRule extends BaseRule {
+public class DataDelayRule extends AbstractRule {
     
     private static final long MAX_DELAY_MS = 10 * 60 * 1000; // 10分钟，单位毫秒
 
     @Override
-    public List<Issue> check(Gb32960Data data) {
+    public List<QualityIssue> check(BatteryData data) {
         String ctimeStr = data.getCtime();
         String timeStr = data.getTime();
         
