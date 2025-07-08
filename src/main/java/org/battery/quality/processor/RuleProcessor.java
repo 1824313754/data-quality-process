@@ -1,52 +1,67 @@
 package org.battery.quality.processor;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
 import org.apache.flink.util.Collector;
+import org.apache.flink.util.OutputTag;
 import org.battery.quality.config.AppConfig;
 import org.battery.quality.config.ConfigManager;
 import org.battery.quality.model.BatteryData;
+import org.battery.quality.model.DataStats;
 import org.battery.quality.model.ProcessedData;
 import org.battery.quality.model.QualityIssue;
 import org.battery.quality.rule.RuleEngine;
 import org.battery.quality.service.RuleService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 规则处理器
  * 对数据应用规则检查
  */
+@Slf4j
 public class RuleProcessor extends KeyedProcessFunction<String, BatteryData, ProcessedData> {
 
     private static final long serialVersionUID = 1L;
-    private static final Logger LOGGER = LoggerFactory.getLogger(RuleProcessor.class);
-    
+
+    // 定义侧输出标签，用于输出数据统计信息
+    public static final OutputTag<DataStats> STATS_OUTPUT_TAG =
+            new OutputTag<DataStats>("data-stats"){};
+
     // 状态：保存上一条记录
     private transient ValueState<BatteryData> previousDataState;
-    
+
     // 规则引擎
     private transient RuleEngine ruleEngine;
-    
+
     // 规则服务
     private transient RuleService ruleService;
-    
+
     // 定时任务执行器
     private transient ScheduledExecutorService scheduler;
 
+    // 日期时间格式化器
+    private static final DateTimeFormatter DATE_TIME_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     
+    // 日期格式化器
+    private static final DateTimeFormatter DATE_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+
     @Override
     public void open(Configuration parameters) throws Exception {
         // 创建状态描述符
-        ValueStateDescriptor<BatteryData> descriptor = 
+        ValueStateDescriptor<BatteryData> descriptor =
                 new ValueStateDescriptor<>("previous-data", BatteryData.class);
         // 获取状态
         previousDataState = getRuntimeContext().getState(descriptor);
@@ -63,30 +78,30 @@ public class RuleProcessor extends KeyedProcessFunction<String, BatteryData, Pro
         // 启动定时任务，定期更新规则
         scheduler =  Executors.newScheduledThreadPool(1);
         scheduler.scheduleAtFixedRate(
-                this::loadRules, 
-                ruleUpdateIntervalSeconds, 
-                ruleUpdateIntervalSeconds, 
+                this::loadRules,
+                ruleUpdateIntervalSeconds,
+                ruleUpdateIntervalSeconds,
                 TimeUnit.SECONDS);
-        
-        LOGGER.info("规则处理器初始化完成，规则更新间隔: {}秒", ruleUpdateIntervalSeconds);
+
+        log.info("规则处理器初始化完成，规则更新间隔: {}秒", ruleUpdateIntervalSeconds);
     }
-    
+
     /**
      * 加载规则
      */
     private void loadRules() {
         try {
-            LOGGER.info("开始加载规则...");
+            log.info("开始加载规则...");
             // 清除现有规则
             ruleEngine.clearRules();
             // 加载规则
             ruleService.loadRules(ruleEngine);
-            LOGGER.info("规则加载完成，共加载 {} 条规则", ruleEngine.getRuleCount());
+            log.info("规则加载完成，共加载 {} 条规则", ruleEngine.getRuleCount());
         } catch (Exception e) {
-            LOGGER.error("加载规则失败", e);
+            log.error("加载规则失败", e);
         }
     }
-    
+
     @Override
     public void processElement(
             BatteryData data,
@@ -110,7 +125,51 @@ public class RuleProcessor extends KeyedProcessFunction<String, BatteryData, Pro
                 .issues(issues)
                 .build();
         out.collect(result);
-    }
-    
 
-} 
+        // 处理数据统计信息
+        collectDataStats(data, issues, ctx);
+    }
+
+    /**
+     * 收集数据统计信息并输出到侧输出流
+     *
+     * @param data 电池数据
+     * @param issues 质量问题列表
+     * @param ctx 上下文
+     */
+    private void collectDataStats(BatteryData data, List<QualityIssue> issues, Context ctx) {
+        try {
+            // 解析时间
+            LocalDateTime dataTime = LocalDateTime.now();
+            if (data.getTime() != null) {
+                try {
+                    dataTime = LocalDateTime.parse(data.getTime(), DATE_TIME_FORMATTER);
+                } catch (Exception e) {
+                    log.warn("解析数据时间失败: {}", data.getTime());
+                }
+            }
+
+            // 创建数据统计对象
+            DataStats stats = DataStats.builder()
+                    .vin(data.getVin())
+                    .dayOfYear(dataTime.toLocalDate().format(DATE_FORMATTER))
+                    .hour(dataTime.getHour())
+                    .vehicleFactory(data.getVehicleFactory())
+                    .normalDataCount(issues.isEmpty() ? 1L : 0L)
+                    .abnormalDataCount(issues.isEmpty() ? 0L : 1L)
+                    .dataCount(1L)
+                    .time(dataTime.format(DATE_TIME_FORMATTER))
+                    .lastUpdateTime(LocalDateTime.now().format(DATE_TIME_FORMATTER))
+                    .build();
+
+            // 输出到侧输出流
+            ctx.output(STATS_OUTPUT_TAG, stats);
+
+            if (log.isDebugEnabled()) {
+                log.debug("数据统计信息已收集: {}", stats);
+            }
+        } catch (Exception e) {
+            log.error("收集数据统计信息失败", e);
+        }
+    }
+}

@@ -85,6 +85,13 @@
             <version>2.13.3</version>
         </dependency>
         
+        <!-- Jackson JSR310 支持Java 8日期/时间类型 -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <version>2.13.3</version>
+        </dependency>
+        
         <!-- YAML Support -->
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>

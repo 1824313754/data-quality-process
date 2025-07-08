@@ -2,12 +2,11 @@ package org.battery.quality.source;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.connectors.kafka.KafkaDeserializationSchema;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.battery.quality.model.BatteryData;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -21,8 +20,8 @@ import java.util.stream.StreamSupport;
  * Kafka电池数据反序列化模式
  * 用于将Kafka消息转换为BatteryData对象，并从Kafka元数据中获取时间戳
  */
+@Slf4j
 public class KafkaBatteryDataDeserializationSchema implements KafkaDeserializationSchema<BatteryData> {
-    private static final Logger LOGGER = LoggerFactory.getLogger(KafkaBatteryDataDeserializationSchema.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     
@@ -72,7 +71,7 @@ public class KafkaBatteryDataDeserializationSchema implements KafkaDeserializati
             return batteryData;
             
         } catch (Exception e) {
-            LOGGER.error("解析电池数据失败: {}", new String(record.value()), e);
+            log.error("解析电池数据失败: {}", new String(record.value()), e);
             return null;
         }
     }

@@ -1,327 +1,234 @@
 # 电池数据质量分析系统
 
-## 1. 项目介绍
+## 项目简介
 
-本系统是一个基于Flink的电池数据质量分析平台，用于实时检测和处理电池相关数据的质量问题。系统从Kafka获取数据，通过各种规则检测数据质量，并将结果输出到Doris或其他目标系统，帮助用户及时发现并解决数据质量问题。
+电池数据质量分析系统是一个基于Apache Flink的实时数据处理平台，专门用于电动汽车电池数据的质量检测和分析。系统实时接收来自Kafka的电池数据，通过一系列预设和自定义的质量规则进行检测，识别出可能存在的数据异常，并将结果保存到Doris数据库以供后续分析和可视化。
 
-### 主要功能
-- **数据质量检测**：支持多种质量规则类型，如有效性、完整性、一致性、时效性等
-- **规则动态加载**：支持从数据库动态加载和更新规则
-- **可扩展的规则引擎**：基于设计模式，易于添加新规则
-- **多种输出方式**：支持将结果输出到Doris、MySQL或控制台等
+## 系统特点
 
-## 2. 项目结构
+- **实时处理**：基于Flink流处理框架，支持毫秒级的数据处理延迟
+- **多维度质量检测**：支持完整性、有效性、一致性、时效性四大类规则
+- **可扩展规则引擎**：基于插件化设计，支持动态加载和更新规则
+- **车厂定制化**：支持根据不同车厂定制不同的规则集
+- **数据统计**：按车辆VIN码、日期、小时等维度进行数据统计
+- **高性能存储**：使用Doris数据库存储处理结果，支持高性能查询和分析
 
+## 系统架构
+
+### 整体架构
 ```
-data-quality-process/
-├── src/main/java/org/battery/
-│   ├── quality/
-│   │   ├── config/        # 配置相关
-│   │   │   ├── KafkaConfig.java
-│   │   │   ├── ProcessConfig.java
-│   │   │   ├── MySQLConfig.java
-│   │   │   ├── SinkConfig.java
-│   │   │   └── DorisConfig.java
-│   │   ├── core/          # 核心应用
-│   │   ├── model/         # 数据模型
-│   │   ├── processor/     # 数据处理器
-│   │   ├── rule/          # 规则定义与实现
-│   │   │   ├── annotation/  # 规则注解
-│   │   │   ├── impl/        # 具体规则实现
-│   │   ├── service/       # 服务层
-│   │   ├── sink/          # 输出模块
-│   │   ├── source/        # 数据源模块
-│   │   └── util/          # 工具类
-│   └── DataQualityApplication.java  # 主入口类
-├── src/main/resources/
-│   ├── application.yml    # 应用配置文件
-│   ├── db/schema.sql      # 数据库脚本
-│   └── logback.xml        # 日志配置
+Kafka数据源 → Flink处理引擎(规则检测) → Doris存储 → 分析平台
 ```
 
-## 3. 设计模式应用
-
-### 单例模式
-用于确保全局只有一个实例，如配置管理器：
-```java
-public class ConfigManager {
-    private static ConfigManager instance;
-    
-    private ConfigManager() { /* 私有构造函数 */ }
-    
-    public static synchronized ConfigManager getInstance() {
-        if (instance == null) {
-            instance = new ConfigManager();
-        }
-        return instance;
-    }
-}
+### 模块结构
+```
+org.battery.quality
+├── config/           # 配置相关
+├── model/            # 数据模型
+├── processor/        # 数据处理器
+├── rule/             # 规则定义与实现
+│   ├── annotation/   # 规则注解
+│   ├── impl/         # 规则实现
+│     ├── completeness/  # 完整性规则
+│     ├── consistency/   # 一致性规则
+│     ├── timeliness/    # 时效性规则
+│     └── validity/      # 有效性规则
+├── service/          # 服务层
+├── sink/             # 输出模块
+├── source/           # 数据源模块
+├── transformer/      # 数据转换器
+└── util/             # 工具类
 ```
 
-### 工厂模式
-用于创建对象，解耦对象的创建和使用：
-```java
-public class SinkFactory {
-    public static Sink createSink(String type, Map<String, Object> config) {
-        switch (type) {
-            case "doris":
-                return new FlinkDorisSink(config);
-            case "print":
-                return new PrintSink(config);
-            default:
-                throw new IllegalArgumentException("不支持的Sink类型: " + type);
-        }
-    }
-}
-```
+## 核心功能
 
-### 策略模式
-用于实现不同算法或策略，如不同的规则实现：
-```java
-@RuleDefinition(type = "SOC_VALIDITY", code = 1002)
-public class SocValidityRule extends AbstractRule {
-    @Override
-    public List<QualityIssue> check(BatteryData data) {
-        // SOC有效性检查策略
-    }
-}
-```
+### 1. 数据质量检测
+- **完整性检测**：检查数据字段是否缺失(例如电池电压、温度数据等)
+- **有效性检测**：检查数据值是否在合理范围内(例如SOC、电压、电流等)
+- **一致性检测**：检查数据内部或与历史数据是否一致(例如电池单体数量)
+- **时效性检测**：检查数据的时间戳是否满足要求(例如数据延迟、超前)
 
-### 模板方法模式
-用于定义算法骨架，子类可以重写特定步骤：
-```java
-public abstract class AbstractRule implements IRule {
-    @Override
-    public List<QualityIssue> check(BatteryData data) {
-        // 通用检查逻辑
-        return doCheck(data);
-    }
-    
-    // 子类实现具体检查逻辑
-    protected abstract List<QualityIssue> doCheck(BatteryData data);
-}
-```
+### 2. 数据统计分析
+- 按车辆VIN码统计正常/异常数据量
+- 按日期、小时维度统计数据分布
+- 按车厂统计数据质量情况
 
-### 观察者模式
-用于实现事件通知机制，如质量问题监控：
-```java
-public class QualityMonitor {
-    private List<QualityObserver> observers = new ArrayList<>();
-    
-    public void addObserver(QualityObserver observer) {
-        observers.add(observer);
-    }
-    
-    public void notifyQualityIssue(QualityIssue issue) {
-        for (QualityObserver observer : observers) {
-            observer.onQualityIssue(issue);
-        }
-    }
-}
-```
+### 3. 灵活配置
+- 支持通过配置文件设置Kafka、Flink、Doris等参数
+- 支持通过数据库动态更新规则
 
-## 4. 核心类图
+## 技术栈
 
-```mermaid
-classDiagram
-    class DataQualityApplication {
-        +main(args: String[])
-    }
-    class ConfigManager {
-        -instance: ConfigManager
-        -config: AppConfig
-        +getInstance(): ConfigManager
-        +getConfig(): AppConfig
-    }
-    class BatteryData {
-        -vin: String
-        -timestamp: Long
-        -soc: Integer
-        -cellVoltages: List~Integer~
-        +getVin(): String
-    }
-    interface IRule {
-        +check(data: BatteryData): List~QualityIssue~
-        +getType(): String
-    }
-    class AbstractRule {
-        +check(data: BatteryData): List~QualityIssue~
-        #createIssue(data: BatteryData, message: String): QualityIssue
-        #singleIssue(data: BatteryData, message: String): List~QualityIssue~
-        #noIssue(): List~QualityIssue~
-    }
-    class RuleEngine {
-        -ruleCache: Map~String, IRule~
-        +registerRule(rule: IRule, factories: List~String~): void
-        +checkData(data: BatteryData, previousData: BatteryData, factoryId: String): List~QualityIssue~
-    }
-    class SocValidityRule {
-        +check(data: BatteryData): List~QualityIssue~
-    }
-    class RuleProcessor {
-        -previousDataState: ValueState~BatteryData~
-        -ruleEngine: RuleEngine
-        +processElement(data: BatteryData, ctx: Context, out: Collector): void
-    }
-    interface IStateRule {
-        +checkState(current: BatteryData, previous: BatteryData): List~QualityIssue~
-    }
-    class AbstractStateRule {
-        +checkState(current: BatteryData, previous: BatteryData): List~QualityIssue~
-    }
-    class RuleService {
-        +loadRules(): void
-        +registerRules(ruleEngine: RuleEngine): void
-    }
-    class ProcessedData {
-        -batteryData: BatteryData
-        -issues: List~QualityIssue~
-        +toJson(): String
-    }
-    
-    DataQualityApplication --> ConfigManager
-    DataQualityApplication --> RuleProcessor
-    RuleProcessor --> RuleEngine
-    RuleProcessor --> RuleService
-    RuleEngine --> IRule
-    IRule <|-- AbstractRule
-    AbstractRule <|-- SocValidityRule
-    IRule <|-- IStateRule
-    IStateRule <|-- AbstractStateRule
-    RuleProcessor --> ProcessedData
-```
+- **Apache Flink 1.13**：分布式流处理框架
+- **Apache Kafka**：消息队列，数据源
+- **Apache Doris**：分析型数据库，结果存储
+- **MySQL**：规则存储和管理
+- **Java 1.8**：开发语言
 
-## 5. 规则系统设计
+## 设计模式应用
 
-### 规则分类
-系统根据质量维度将规则分为四大类：
-1. **有效性规则**：检查数据是否符合业务规则
-2. **完整性规则**：检查数据是否完整
-3. **一致性规则**：检查数据内部或与历史数据的一致性
-4. **时效性规则**：检查数据时间戳是否满足要求
+系统在设计和实现过程中应用了多种设计模式：
 
-### 规则注解
-使用注解简化规则的定义：
-```java
-@RuleDefinition(
-    type = "SOC_VALIDITY",
-    code = 1002,
-    description = "SOC无效",
-    category = RuleCategory.VALIDITY,
-    priority = 5
-)
-public class SocValidityRule extends AbstractRule {
-    // 规则实现
-}
-```
+- **单例模式**：用于配置管理等全局对象
+- **工厂模式**：用于创建不同类型的对象，如规则、数据源等
+- **策略模式**：用于实现不同的规则策略
+- **模板方法模式**：用于规则基类设计，提供通用处理流程
+- **建造者模式**：用于构建复杂对象，如配置对象、数据对象等
+- **责任链模式**：用于规则链式处理
 
-## 6. 配置说明
+## 核心流程
 
-系统使用YAML格式配置文件：
+1. **数据接入**：从Kafka读取电池数据
+2. **数据预处理**：解析、转换和规范化数据
+3. **规则处理**：应用各类规则检测数据质量
+4. **结果输出**：将处理结果和统计数据写入Doris
+5. **异常监控**：监控处理过程中的异常情况
 
-```yaml
-# Kafka配置
-kafka:
-  bootstrapServers: cdh03:6667,cdh04:6667,cdh05:6667
-  topic: ods-001-wuling
-  groupId: data-quality-group
+## 快速开始
 
-# 处理配置  
-process:
-  parallelism: 1
-  checkpointInterval: 60000
-
-# Sink配置
-sink:
-  type: doris  # 可选：doris, print
-
-# Doris配置
-doris:
-  conn: 10.2.96.62:8030
-  user: root
-  passwd: gotion@2025
-  database: battery_ods
-  table: error_data
-```
-
-## 7. 使用说明
+### 环境要求
+- Java 1.8+
+- Maven 3.6+
+- Kafka 2.4+
+- Doris 1.0+
+- MySQL 5.7+
 
 ### 编译打包
 ```bash
 mvn clean package
 ```
 
-### 运行系统
-```bash
-# 本地运行
-java -jar target/data-quality-process.jar
+### 配置说明
+配置文件路径：`src/main/resources/application.yml`
 
-# Flink集群运行
-flink run -c org.battery.DataQualityApplication target/data-quality-process.jar
+```yaml
+# Kafka配置
+kafka:
+  bootstrapServers: localhost:9092
+  topic: battery-data
+  groupId: data-quality-group
+
+# 处理配置
+process:
+  parallelism: 4
+  checkpointInterval: 60000  # 毫秒
+
+# MySQL配置
+mysql:
+  url: jdbc:mysql://localhost:3306/battery_quality
+  username: root
+  password: password
+  
+# Doris配置
+doris:
+  conn: localhost:8030
+  user: root
+  passwd: 
+  database: battery_data
+  table: gb32960_data_with_issues
 ```
 
-### 自定义参数
+### 启动命令
 ```bash
-java -jar target/data-quality-process.jar \
-  --kafka.bootstrapServers=localhost:9092 \
-  --sink.type=print
+# 本地模式
+flink run -c org.battery.quality.DataQualityApplication target/data-quality-process-1.0-SNAPSHOT.jar
+
+# 集群模式
+flink run -m yarn-cluster -yn 2 -yjm 1024 -ytm 4096 \
+  -c org.battery.quality.DataQualityApplication \
+  target/data-quality-process-1.0-SNAPSHOT.jar
 ```
 
-## 8. 规则开发指南
+## 数据模型
 
-### 创建新规则
-1. 确定规则所属分类
-2. 继承适当的抽象类（`AbstractRule`或`AbstractStateRule`）
+### 输入数据模型(BatteryData)
+```java
+public class BatteryData {
+    private String vin;                     // 车辆VIN码
+    private String vehicleFactory;          // 车辆厂商代码
+    private String time;                    // 数据时间
+    private Integer vehicleStatus;          // 车辆状态
+    private Integer chargeStatus;           // 充电状态
+    private Integer speed;                  // 车速
+    private Integer soc;                    // 电池SOC
+    // ... 其他字段
+}
+```
+
+### 输出数据模型
+```java
+public class ProcessedData {
+    private BatteryData data;               // 原始电池数据
+    private List<QualityIssue> issues;      // 发现的质量问题
+}
+
+public class QualityIssue {
+    private int code;                       // 问题编码
+    private String value;                   // 问题值
+    private String type;                    // 问题类型
+    private String description;             // 问题描述
+    private int severity;                   // 严重程度
+}
+```
+
+### 统计数据模型
+```java
+public class DataStats {
+    private String vin;                     // 车辆VIN码
+    private String dayOfYear;               // 数据日期
+    private Integer hour;                   // 小时(0-23)
+    private String vehicleFactory;          // 车厂
+    private Long normalDataCount;           // 正常数据条数
+    private Long abnormalDataCount;         // 异常数据条数
+    private Long dataCount;                 // 总数据条数
+    // ... 其他字段
+}
+```
+
+## 规则开发指南
+
+### 新增规则步骤
+1. 在`rule.impl`包中创建规则类
+2. 继承`AbstractRule`或`AbstractStateRule`基类
 3. 添加`@RuleDefinition`注解
-4. 实现`check`或`checkState`方法
+4. 实现具体的检测逻辑
 
-示例：
+### 规则示例
 ```java
 @RuleDefinition(
-    type = "CUSTOM_RULE",
-    code = 2001,
-    description = "自定义规则",
+    type = "SOC_VALIDITY",
+    code = 1002,
+    description = "SOC值无效",
     category = RuleCategory.VALIDITY
 )
-public class CustomRule extends AbstractRule {
+public class SocValidityRule extends AbstractRule {
+    
     @Override
-    public List<QualityIssue> check(BatteryData data) {
-        // 实现检查逻辑
-        if (/* 条件 */) {
-            return singleIssue(data, "发现问题");
+    protected List<QualityIssue> doCheck(BatteryData data) {
+        if (data.getSoc() == null) {
+            return noIssue();
         }
+        
+        // SOC有效范围: 0-100
+        if (data.getSoc() < 0 || data.getSoc() > 100) {
+            return singleIssue(
+                data, 
+                "SOC值 " + data.getSoc() + " 超出有效范围[0,100]"
+            );
+        }
+        
         return noIssue();
     }
 }
 ```
 
-## 9. 监控与告警
+## 性能优化
 
-系统支持多种方式监控数据质量：
-1. **日志监控**：详细记录质量问题
-2. **指标监控**：输出关键指标到监控系统
-3. **告警通知**：当质量问题超过阈值时触发告警
+- 使用键控状态(Keyed State)管理每辆车的历史数据
+- 采用侧输出流(Side Output)分离主流和统计流
+- 批量写入Doris提高吞吐量
+- 动态分区优化Doris存储性能
 
-## 10. 常见问题与解答
+## 许可证
 
-### Q: 如何添加新的数据源？
-A: 实现`SourceManager`接口并在主应用中注册。
-
-### Q: 如何添加自定义Sink？
-A: 实现`Sink`接口并在`SinkFactory`中注册。
-
-### Q: 规则如何更新生效？
-A: 系统会定期从数据库刷新规则，也可通过API触发手动更新。
-
-## 11. 版本历史与规划
-
-### 当前版本
-- 实现基本的质量检测功能
-- 支持动态规则加载
-- 多种输出方式
-
-### 规划特性
-- 基于AI的异常检测
-- 图形化规则管理界面
-- 更丰富的指标与监控
-- 性能优化
+本项目采用Apache 2.0许可证
