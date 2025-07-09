@@ -119,12 +119,14 @@ public class RuleProcessor extends KeyedProcessFunction<String, BatteryData, Pro
         List<QualityIssue> issues = ruleEngine.checkData(data, previousData, vehicleFactory);
         // 保存当前记录为下一次的上一条记录
         previousDataState.update(data);
-        // 输出结果
-        ProcessedData result = ProcessedData.builder()
-                .data(data)
-                .issues(issues)
-                .build();
-        out.collect(result);
+        // 只输出异常数据（有质量问题的数据）
+        if (!issues.isEmpty()) {
+            ProcessedData result = ProcessedData.builder()
+                    .data(data)
+                    .issues(issues)
+                    .build();
+            out.collect(result);
+        }
 
         // 处理数据统计信息
         collectDataStats(data, issues, ctx);
