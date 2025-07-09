@@ -23,7 +23,6 @@ public class CellVoltagesMissingRule extends AbstractRule {
     @Override
     public List<QualityIssue> check(BatteryData data) {
         List<Integer> cellVoltages = data.getCellVoltages();
-//        System.out.println(111);
         if (cellVoltages == null || cellVoltages.isEmpty()) {
             return singleIssue(data, "cellVoltages为空");
         }

@@ -1,6 +1,5 @@
 package org.battery.quality.service;
 
-import org.battery.quality.config.DatabaseManager;
 import org.battery.quality.dao.RuleDao;
 import org.battery.quality.model.RuleInfo;
 import org.battery.quality.rule.IRule;
@@ -12,17 +11,26 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 规则服务
- * 处理规则的加载、编译和注册
+ * 处理规则的动态加载、编译和注册
+ *
+ * 核心功能：
+ * 1. 增量更新 - 检测规则变更并只更新变化的部分
+ * 2. 三种变更场景：新增、修改、删除
+ * 3. 基于更新时间的变更检测
  */
 public class RuleService {
     private static final Logger LOGGER = LoggerFactory.getLogger(RuleService.class);
-    
+
     // 规则DAO
     private final RuleDao ruleDao;
-    
+
+    // 本地规则快照：规则ID -> 规则信息（用于变更检测）
+    private final Map<String, RuleInfo> localRuleSnapshot = new ConcurrentHashMap<>();
+
     /**
      * 构造函数
      */
@@ -31,43 +39,107 @@ public class RuleService {
     }
     
     /**
-     * 加载规则并注册到规则引擎
-     * 
+     * 增量更新规则到规则引擎
+     *
      * @param ruleEngine 规则引擎
-     * @return 加载的规则数量
+     * @return 更新统计信息
      */
-    public int loadRules(RuleEngine ruleEngine) {
-        int count = 0;
-        
+    public RuleUpdateResult updateRules(RuleEngine ruleEngine) {
+        RuleUpdateResult result = new RuleUpdateResult();
+
         try {
-            // 从数据库加载规则信息
-            Map<String, RuleInfo> ruleInfoMap = ruleDao.loadAllRules();
-            
-            // 遍历规则信息
-            for (RuleInfo ruleInfo : ruleInfoMap.values()) {
+            // 从数据库加载最新规则信息
+            Map<String, RuleInfo> latestRules = ruleDao.loadAllRules();
+
+            // 检测变更
+            RuleChanges changes = detectChanges(latestRules);
+
+            // 处理删除的规则
+            for (String deletedRuleId : changes.getDeletedRules()) {
+                ruleEngine.removeRule(deletedRuleId);
+                localRuleSnapshot.remove(deletedRuleId);
+                result.deletedCount++;
+                LOGGER.info("删除规则: {}", deletedRuleId);
+            }
+
+            // 处理新增和修改的规则
+            for (RuleInfo ruleInfo : changes.getAddedOrModifiedRules()) {
                 try {
-                    // 创建规则实例
-                    IRule rule = createRule(ruleInfo);
-                    if (rule == null) {
-                        continue;
+                    // 如果是修改的规则，先删除旧版本
+                    if (ruleEngine.hasRule(ruleInfo.getId())) {
+                        ruleEngine.removeRule(ruleInfo.getId());
+                        result.modifiedCount++;
+                        LOGGER.info("修改规则: {}", ruleInfo.getId());
+                    } else {
+                        result.addedCount++;
+                        LOGGER.info("新增规则: {}", ruleInfo.getId());
                     }
-                    
-                    // 解析适用的车厂ID列表
-                    List<String> factories = parseFactories(ruleInfo.getEnabledFactories());
-                    
-                    // 注册规则到引擎
-                    ruleEngine.registerRule(rule, factories);
-                    
-                    count++;
+
+                    // 编译并注册新规则
+                    IRule rule = createRule(ruleInfo);
+                    if (rule != null) {
+                        List<String> factories = parseFactories(ruleInfo.getEnabledFactories());
+                        ruleEngine.registerRule(rule, factories);
+
+                        // 更新本地快照
+                        localRuleSnapshot.put(ruleInfo.getId(), ruleInfo);
+                    }
                 } catch (Exception e) {
-                    LOGGER.error("创建规则失败: {}", ruleInfo.getId(), e);
+                    LOGGER.error("处理规则失败: {}", ruleInfo.getId(), e);
+                    result.errorCount++;
                 }
             }
+
+            LOGGER.info("规则更新完成 - 新增:{}, 修改:{}, 删除:{}, 错误:{}",
+                    result.addedCount, result.modifiedCount, result.deletedCount, result.errorCount);
+
         } catch (Exception e) {
-            LOGGER.error("加载规则失败", e);
+            LOGGER.error("更新规则失败", e);
+            result.errorCount++;
         }
-        
-        return count;
+
+        return result;
+    }
+
+    /**
+     * 检测规则变更
+     */
+    private RuleChanges detectChanges(Map<String, RuleInfo> latestRules) {
+        RuleChanges changes = new RuleChanges();
+
+        // 检测删除的规则
+        for (String localRuleId : localRuleSnapshot.keySet()) {
+            if (!latestRules.containsKey(localRuleId)) {
+                changes.addDeletedRule(localRuleId);
+            }
+        }
+
+        // 检测新增和修改的规则
+        for (RuleInfo latestRule : latestRules.values()) {
+            RuleInfo localRule = localRuleSnapshot.get(latestRule.getId());
+
+            if (localRule == null) {
+                // 新增的规则
+                changes.addAddedOrModifiedRule(latestRule);
+            } else if (isRuleModified(localRule, latestRule)) {
+                // 修改的规则
+                changes.addAddedOrModifiedRule(latestRule);
+            }
+        }
+
+        return changes;
+    }
+
+    /**
+     * 判断规则是否被修改
+     */
+    private boolean isRuleModified(RuleInfo localRule, RuleInfo latestRule) {
+        // 比较更新时间
+        if (localRule.getUpdateTime() == null || latestRule.getUpdateTime() == null) {
+            return true; // 如果时间为空，认为需要更新
+        }
+
+        return !localRule.getUpdateTime().equals(latestRule.getUpdateTime());
     }
     
     /**

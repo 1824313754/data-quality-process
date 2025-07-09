@@ -6,8 +6,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -134,6 +136,44 @@ public class RuleEngine {
     }
     
     /**
+     * 移除指定规则
+     *
+     * @param ruleType 规则类型
+     */
+    public void removeRule(String ruleType) {
+        // 从规则缓存中移除
+        IRule removedRule = ruleCache.remove(ruleType);
+
+        if (removedRule != null) {
+            // 从所有车厂映射中移除该规则
+            factoryRuleMapping.values().forEach(ruleList -> ruleList.remove(ruleType));
+            LOGGER.info("移除规则: {}", ruleType);
+        } else {
+            LOGGER.warn("尝试移除不存在的规则: {}", ruleType);
+        }
+    }
+
+    /**
+     * 检查规则是否存在
+     *
+     * @param ruleType 规则类型
+     * @return 是否存在
+     */
+    public boolean hasRule(String ruleType) {
+        return ruleCache.containsKey(ruleType);
+    }
+
+    /**
+     * 获取规则实例
+     *
+     * @param ruleType 规则类型
+     * @return 规则实例，不存在返回null
+     */
+    public IRule getRule(String ruleType) {
+        return ruleCache.get(ruleType);
+    }
+
+    /**
      * 清除所有规则
      */
     public void clearRules() {
@@ -141,11 +181,18 @@ public class RuleEngine {
         factoryRuleMapping.clear();
         LOGGER.info("清除所有规则");
     }
-    
+
     /**
      * 获取已注册规则数量
      */
     public int getRuleCount() {
         return ruleCache.size();
+    }
+
+    /**
+     * 获取所有规则类型
+     */
+    public Set<String> getAllRuleTypes() {
+        return new HashSet<>(ruleCache.keySet());
     }
 }

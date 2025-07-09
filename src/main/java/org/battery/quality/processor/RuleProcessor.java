@@ -15,6 +15,7 @@ import org.battery.quality.model.ProcessedData;
 import org.battery.quality.model.QualityIssue;
 import org.battery.quality.rule.RuleEngine;
 import org.battery.quality.service.RuleService;
+import org.battery.quality.service.RuleUpdateResult;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -73,12 +74,12 @@ public class RuleProcessor extends KeyedProcessFunction<String, BatteryData, Pro
         AppConfig appConfig = ConfigManager.getInstance().getConfig();
         // 获取规则更新间隔（秒）
         long ruleUpdateIntervalSeconds = appConfig.getMysql().getCacheRefreshInterval();
-        // 首次加载规则
-        loadRules();
-        // 启动定时任务，定期更新规则
+        // 首次加载规则（全量加载）
+        initialLoadRules();
+        // 启动定时任务，定期增量更新规则
         scheduler =  Executors.newScheduledThreadPool(1);
         scheduler.scheduleAtFixedRate(
-                this::loadRules,
+                this::updateRules,
                 ruleUpdateIntervalSeconds,
                 ruleUpdateIntervalSeconds,
                 TimeUnit.SECONDS);
@@ -87,18 +88,41 @@ public class RuleProcessor extends KeyedProcessFunction<String, BatteryData, Pro
     }
 
     /**
-     * 加载规则
+     * 初始化加载规则（全量加载）
      */
-    private void loadRules() {
+    private void initialLoadRules() {
         try {
-            log.info("开始加载规则...");
+            log.info("开始初始化加载规则...");
             // 清除现有规则
             ruleEngine.clearRules();
-            // 加载规则
-            ruleService.loadRules(ruleEngine);
-            log.info("规则加载完成，共加载 {} 条规则", ruleEngine.getRuleCount());
+            // 全量加载规则
+            RuleUpdateResult result = ruleService.updateRules(ruleEngine);
+            log.info("规则初始化完成 - {}, 总规则数: {}", result, ruleEngine.getRuleCount());
         } catch (Exception e) {
-            log.error("加载规则失败", e);
+            log.error("初始化加载规则失败", e);
+        }
+    }
+
+    /**
+     * 增量更新规则
+     */
+    private void updateRules() {
+        try {
+            log.debug("开始检查规则更新...");
+            // 增量更新规则
+            RuleUpdateResult result = ruleService.updateRules(ruleEngine);
+
+            if (result.hasChanges()) {
+                log.info("规则更新完成 - {}, 当前规则数: {}", result, ruleEngine.getRuleCount());
+            } else {
+                log.debug("无规则变更");
+            }
+
+            if (result.hasErrors()) {
+                log.warn("规则更新过程中发生错误，错误数量: {}", result.errorCount);
+            }
+        } catch (Exception e) {
+            log.error("增量更新规则失败", e);
         }
     }
 

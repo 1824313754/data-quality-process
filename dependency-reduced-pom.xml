@@ -26,7 +26,7 @@
             <configuration>
               <transformers>
                 <transformer>
-                  <mainClass>org.battery.DataQualityApplication</mainClass>
+                  <mainClass>org.battery.quality.DataQualityApplication</mainClass>
                 </transformer>
                 <transformer />
               </transformers>

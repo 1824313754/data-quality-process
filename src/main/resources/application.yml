@@ -27,12 +27,12 @@ sink:
 # Doris配置
 doris:
   conn: 10.2.96.62:8030
-  user: root
-  passwd: gotion@2025
+  user: adi_bigdata
+  passwd: adi_bigdata@2025
   database: battery_ods
   table: error_data
-  batchSize: 1000
-  batchIntervalMs: 10000
+  batchSize: 5000
+  batchIntervalMs: 30000
   maxRetries: 2147483647
   maxBatchBytes: 1073741824
 
