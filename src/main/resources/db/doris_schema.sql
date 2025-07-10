@@ -5,13 +5,13 @@
 CREATE DATABASE IF NOT EXISTS `battery_quality`;
 USE `battery_quality`;
 
--- 规则配置表
+-- 规则配置表 (使用UNIQUE KEY支持主键覆盖更新，以rule_code作为主键)
 CREATE TABLE IF NOT EXISTS `battery_quality`.`rule_class` (
+  `rule_code` int NOT NULL COMMENT "异常编码",
   `id` varchar(100) NOT NULL COMMENT "规则ID",
   `name` varchar(100) NOT NULL COMMENT "规则名称",
   `description` varchar(255) NOT NULL COMMENT "规则描述",
   `category` varchar(50) NOT NULL COMMENT "规则分类",
-  `rule_code` int NOT NULL COMMENT "异常编码",
   `priority` int NOT NULL COMMENT "规则优先级",
   `source_code` text NOT NULL COMMENT "规则源代码",
   `enabled_factories` varchar(1000) NOT NULL COMMENT "启用的车厂ID列表，用逗号分隔，0表示所有车厂",
@@ -19,12 +19,13 @@ CREATE TABLE IF NOT EXISTS `battery_quality`.`rule_class` (
   `update_time` datetime NOT NULL COMMENT "更新时间",
   `status` tinyint NOT NULL COMMENT "规则状态：1-启用，0-禁用"
 ) ENGINE=OLAP
-DUPLICATE KEY(`id`)
-DISTRIBUTED BY HASH(`id`) BUCKETS 10
+UNIQUE KEY(`rule_code`)
+DISTRIBUTED BY HASH(`rule_code`) BUCKETS 10
 PROPERTIES (
 "replication_allocation" = "tag.location.offline: 1",
 "storage_medium" = "hdd",
-"storage_format" = "V2"
+"storage_format" = "V2",
+"enable_unique_key_merge_on_write" = "true"
 );
 
 -- 车厂ID参考：

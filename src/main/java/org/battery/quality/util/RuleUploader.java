@@ -32,21 +32,15 @@ public class RuleUploader {
     // 数据库管理器
     private static final DatabaseManager dbManager = DatabaseManager.getInstance();
     
-    // 插入规则的SQL
-    private static final String SQL_INSERT_RULE = 
-            "INSERT INTO rule_class (id, name, description, category, rule_code, priority, " +
+    // 插入或更新规则的SQL (使用rule_code作为主键，支持覆盖更新)
+    private static final String SQL_UPSERT_RULE =
+            "INSERT INTO rule_class (rule_code, id, name, description, category, priority, " +
             "source_code, enabled_factories, create_time, update_time, status) " +
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-    
-    // 更新规则的SQL
-    private static final String SQL_UPDATE_RULE = 
-            "UPDATE rule_class SET name = ?, description = ?, category = ?, rule_code = ?, " +
-            "priority = ?, source_code = ?, enabled_factories = ?, update_time = ? " +
-            "WHERE id = ?";
-    
-    // 查询规则的SQL
-    private static final String SQL_QUERY_RULE = 
-            "SELECT id FROM rule_class WHERE id = ?";
+
+    // 查询规则的SQL (基于rule_code查询)
+    private static final String SQL_QUERY_RULE =
+            "SELECT id FROM rule_class WHERE rule_code = ?";
     
     /**
      * 主方法
@@ -332,61 +326,34 @@ public class RuleUploader {
     }
     
     /**
-     * 上传规则到数据库
+     * 上传规则到数据库 (使用UNIQUE KEY主键覆盖)
      */
     private static void uploadRule(RuleInfo ruleInfo, String enabledFactories, String sourceCode) throws SQLException {
         Connection conn = null;
         PreparedStatement stmt = null;
-        ResultSet rs = null;
-        
+
         try {
             conn = dbManager.getConnection();
-            
-            // 检查规则是否已存在
-            stmt = conn.prepareStatement(SQL_QUERY_RULE);
-            stmt.setString(1, ruleInfo.id);
-            rs = stmt.executeQuery();
-            
-            boolean exists = rs.next();
-            rs.close();
-            stmt.close();
-            
+
             LocalDateTime now = LocalDateTime.now();
             String currentTime = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            
-            if (exists) {
-                // 更新规则
-                stmt = conn.prepareStatement(SQL_UPDATE_RULE);
-                stmt.setString(1, ruleInfo.name);
-                stmt.setString(2, ruleInfo.description);
-                stmt.setString(3, ruleInfo.category);
-                stmt.setInt(4, ruleInfo.ruleCode);
-                stmt.setInt(5, ruleInfo.priority);
-                stmt.setString(6, sourceCode);
-                stmt.setString(7, enabledFactories);
-                stmt.setString(8, currentTime);
-                stmt.setString(9, ruleInfo.id);
-            } else {
-                // 插入新规则
-                stmt = conn.prepareStatement(SQL_INSERT_RULE);
-                stmt.setString(1, ruleInfo.id);
-                stmt.setString(2, ruleInfo.name);
-                stmt.setString(3, ruleInfo.description);
-                stmt.setString(4, ruleInfo.category);
-                stmt.setInt(5, ruleInfo.ruleCode);
-                stmt.setInt(6, ruleInfo.priority);
-                stmt.setString(7, sourceCode);
-                stmt.setString(8, enabledFactories);
-                stmt.setString(9, currentTime);
-                stmt.setString(10, currentTime);
-                stmt.setInt(11, 1); // 默认启用
-            }
-            
+
+            // 直接插入或覆盖更新 (UNIQUE KEY会自动处理重复)
+            stmt = conn.prepareStatement(SQL_UPSERT_RULE);
+            stmt.setInt(1, ruleInfo.ruleCode);       // rule_code (主键)
+            stmt.setString(2, ruleInfo.id);          // id
+            stmt.setString(3, ruleInfo.name);        // name
+            stmt.setString(4, ruleInfo.description); // description
+            stmt.setString(5, ruleInfo.category);    // category
+            stmt.setInt(6, ruleInfo.priority);       // priority
+            stmt.setString(7, sourceCode);           // source_code
+            stmt.setString(8, enabledFactories);     // enabled_factories
+            stmt.setString(9, currentTime);          // create_time
+            stmt.setString(10, currentTime);         // update_time
+            stmt.setInt(11, 1);                      // status (默认启用)
+
             stmt.executeUpdate();
         } finally {
-            if (rs != null) {
-                try { rs.close(); } catch (SQLException e) { /* ignore */ }
-            }
             if (stmt != null) {
                 try { stmt.close(); } catch (SQLException e) { /* ignore */ }
             }
