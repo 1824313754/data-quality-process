@@ -26,13 +26,13 @@ public class TotalVoltageValidityRule extends AbstractRule {
         if (voltage == null) {
             return noIssue();
         }
-        
-        // 总电压取值范围: [0, 10000] (单位: 0.1V)
-        if (voltage < 0 || voltage > 10000) {
-            return singleIssue(data, 
-                    String.format("总电压: %.1fV", voltage / 10.0));
+
+        // 总电压取值范围: [0, 1000V] 根据指标表修正
+        if (voltage < 0 || voltage > 1000) {
+            return singleIssue(data,
+                    String.format("总电压: %dV", voltage));
         }
-        
+
         return noIssue();
     }
 } 

@@ -13,8 +13,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 时间字段有效性检查规则
- * 检查时间字符串是否有效且可以构成一个合法的时间
+ * 采集时间字段有效性检查规则
+ * 检查ctime字段是否有效且可以构成一个合法的时间
+ * 注意：此规则专门验证ctime字段，不修改数据
  */
 @RuleDefinition(
         type = "COLLECTION_TIME_VALIDITY",
@@ -30,61 +31,42 @@ public class DateTimeFieldsValidityRule extends AbstractRule {
     @Override
     public List<QualityIssue> check(BatteryData data) {
         List<QualityIssue> issues = new ArrayList<>();
-        String timeStr = data.getTime();
-        
-        if (timeStr == null || timeStr.trim().isEmpty()) {
-            issues.add(QualityIssue.builder()
-                .code(getCode())
-                .value("时间字符串为空")
-                .build());
-            
-            // 使用当前时间作为ctime
-            data.setCtime(getCurrentTimeAsString());
+        String ctimeStr = data.getCtime();
+
+        // 检查ctime字段是否为空
+        if (ctimeStr == null || ctimeStr.trim().isEmpty()) {
+            issues.add(createIssue(data, "采集时间字段为空"));
             return issues;
         }
-        
+
         try {
-            // 尝试解析时间字符串
-            LocalDateTime dateTime = LocalDateTime.parse(timeStr, FORMATTER);
-            
-            // 设置ctime为原始时间字符串
-            data.setCtime(timeStr);
-            
+            // 尝试解析采集时间字符串
+            LocalDateTime dateTime = LocalDateTime.parse(ctimeStr, FORMATTER);
+
+            // 验证时间的合理性
+            if (!isValidDateTime(dateTime)) {
+                issues.add(createIssue(data, "采集时间不合理: " + ctimeStr));
+            }
+
         } catch (DateTimeParseException e) {
-            issues.add(QualityIssue.builder()
-                .code(getCode())
-                .value("无法解析时间字符串: " + timeStr + ", 错误: " + e.getMessage())
-                .build());
-            
-            // 使用当前时间作为ctime
-            data.setCtime(getCurrentTimeAsString());
-            return issues;
+            issues.add(createIssue(data, "无法解析采集时间: " + ctimeStr + ", 错误: " + e.getMessage()));
         }
-        
-        return noIssue();
+
+        return issues;
+    }
+
+    /**
+     * 验证时间是否合理
+     * @param dateTime 解析后的时间
+     * @return 是否合理
+     */
+    private boolean isValidDateTime(LocalDateTime dateTime) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime minValidTime = now.minusYears(10); // 10年前
+        LocalDateTime maxValidTime = now.plusDays(1);    // 1天后
+
+        return dateTime.isAfter(minValidTime) && dateTime.isBefore(maxValidTime);
     }
     
-    /**
-     * 获取当前时间作为格式化的字符串
-     */
-    private String getCurrentTimeAsString() {
-        return LocalDateTime.now().format(FORMATTER);
-    }
-    
-    /**
-     * 检查值是否在指定范围内
-     */
-    private boolean isValidRange(Integer value, int min, int max) {
-        return value != null && value >= min && value <= max;
-    }
-    
-    /**
-     * 创建质量问题
-     */
-    protected QualityIssue createIssue(BatteryData data, String description) {
-        return QualityIssue.builder()
-            .code(getCode())
-            .value(description)
-            .build();
-    }
+
 } 

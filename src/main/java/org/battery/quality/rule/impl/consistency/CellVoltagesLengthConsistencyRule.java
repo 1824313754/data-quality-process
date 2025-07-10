@@ -10,6 +10,7 @@ import java.util.List;
 
 /**
  * 单体电压数组长度一致性检查规则
+ * 检查同一VIN、batteryNumber下cellVoltages数组长度是否一致
  */
 @RuleDefinition(
         type = "CELL_VOLTAGES_LENGTH_CONSISTENCY",

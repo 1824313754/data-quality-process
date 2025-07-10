@@ -20,7 +20,7 @@ import java.util.List;
 )
 public class InsulationResistanceValidityRule extends AbstractRule {
     
-    private static final int MIN_RESISTANCE = 200;   // 最小值200
+    private static final int MIN_RESISTANCE = 0;   // 最小值200
     private static final int MAX_RESISTANCE = 60000; // 最大值60000
 
     @Override

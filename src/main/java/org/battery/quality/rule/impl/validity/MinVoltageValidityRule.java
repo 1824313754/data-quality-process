@@ -21,7 +21,7 @@ import java.util.List;
 public class MinVoltageValidityRule extends AbstractRule {
     
     private static final int MIN_VOLTAGE = 0;
-    private static final int MAX_VOLTAGE = 15000; // 单位 0.001V，15000表示15V
+    private static final int MAX_VOLTAGE = 15000; // 单位 mv，15000表示15000mv
 
     @Override
     public List<QualityIssue> check(BatteryData data) {
@@ -29,12 +29,13 @@ public class MinVoltageValidityRule extends AbstractRule {
         if (voltage == null) {
             return noIssue();
         }
-        
+
+        // 最小电压取值范围: [0, 15000mv] 根据指标表
         if (voltage < MIN_VOLTAGE || voltage > MAX_VOLTAGE) {
-            return singleIssue(data, 
-                    String.format("最小电压: %d (0.001V)", voltage));
+            return singleIssue(data,
+                    String.format("最小电压: %dmv", voltage));
         }
-        
+
         return noIssue();
     }
 } 

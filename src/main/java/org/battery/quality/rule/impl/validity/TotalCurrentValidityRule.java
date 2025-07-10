@@ -20,8 +20,8 @@ import java.util.List;
 )
 public class TotalCurrentValidityRule extends AbstractRule {
     
-    private static final int MIN_CURRENT_ABS = 0;
-    private static final int MAX_CURRENT_ABS = 20000; // 单位 0.1A，20000表示2000A
+    private static final int MIN_CURRENT = -1000; // -1000A
+    private static final int MAX_CURRENT = 1000;  // 1000A
 
     @Override
     public List<QualityIssue> check(BatteryData data) {
@@ -29,13 +29,13 @@ public class TotalCurrentValidityRule extends AbstractRule {
         if (current == null) {
             return noIssue();
         }
-        
-        int absoluteCurrent = Math.abs(current);
-        if (absoluteCurrent < MIN_CURRENT_ABS || absoluteCurrent > MAX_CURRENT_ABS) {
-            return singleIssue(data, 
-                    String.format("总电流: %d (0.1A)", current));
+
+        // 总电流取值范围: [-1000A, 1000A] 根据指标表修正
+        if (current < MIN_CURRENT || current > MAX_CURRENT) {
+            return singleIssue(data,
+                    String.format("总电流: %dA", current));
         }
-        
+
         return noIssue();
     }
 } 

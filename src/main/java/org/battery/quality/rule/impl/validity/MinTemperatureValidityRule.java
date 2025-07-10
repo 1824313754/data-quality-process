@@ -21,7 +21,7 @@ import java.util.List;
 public class MinTemperatureValidityRule extends AbstractRule {
     
     private static final int MIN_TEMPERATURE = 0;
-    private static final int MAX_TEMPERATURE = 250; // 单位 ℃ - 40
+    private static final int MAX_TEMPERATURE = 210; // 单位 ℃
 
     @Override
     public List<QualityIssue> check(BatteryData data) {
@@ -30,10 +30,10 @@ public class MinTemperatureValidityRule extends AbstractRule {
             return noIssue();
         }
         
+        // 最小温度取值范围: [0, 210] 根据指标表
         if (temperature < MIN_TEMPERATURE || temperature > MAX_TEMPERATURE) {
-            // 原始数据已经减去40了，这里显示实际温度
-            return singleIssue(data, 
-                    String.format("最小温度: %d", temperature));
+            return singleIssue(data,
+                    String.format("最小温度: %d℃", temperature));
         }
         
         return noIssue();

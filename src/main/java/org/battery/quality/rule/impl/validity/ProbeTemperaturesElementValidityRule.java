@@ -15,7 +15,7 @@ import java.util.stream.IntStream;
  */
 @RuleDefinition(
     type = "PROBE_TEMPERATURES_ELEMENT_VALIDITY",
-    code = 1015,
+    code = 1017,
     description = "温度数组存在无效值",
     category = RuleCategory.VALIDITY,
     priority = 3
@@ -23,7 +23,7 @@ import java.util.stream.IntStream;
 public class ProbeTemperaturesElementValidityRule extends AbstractRule {
     
     private static final int MIN_TEMPERATURE = 0;
-    private static final int MAX_TEMPERATURE = 250; // 单位 ℃ - 40
+    private static final int MAX_TEMPERATURE = 210; // 单位 ℃，根据指标表修正
 
     @Override
     public List<QualityIssue> check(BatteryData data) {

@@ -1,7 +1,7 @@
 # 应用配置
 kafka:
   bootstrapServers: cdh03:6667,cdh04:6667,cdh05:6667
-  topic: ods-001-wuling
+  topic: ods-gb-all
   groupId: data-quality-group
   autoOffsetReset: latest
 
