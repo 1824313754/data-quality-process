@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -51,43 +52,22 @@ public class RuleService {
             // 从数据库加载最新规则信息
             Map<String, RuleInfo> latestRules = ruleDao.loadAllRules();
 
-            // 检测变更
-            RuleChanges changes = detectChanges(latestRules);
+            // 检测所有规则的变更状态
+            Map<String, RuleChangeType> ruleChanges = detectAllRuleChanges(latestRules);
 
-            // 处理删除的规则
-            for (String deletedRuleId : changes.getDeletedRules()) {
-                ruleEngine.removeRule(deletedRuleId);
-                localRuleSnapshot.remove(deletedRuleId);
-                result.deletedCount++;
-                LOGGER.info("删除规则: {}", deletedRuleId);
-            }
+            // 使用策略模式处理每个规则的变更
+            for (Map.Entry<String, RuleChangeType> entry : ruleChanges.entrySet()) {
+                String ruleId = entry.getKey();
+                RuleChangeType changeType = entry.getValue();
+                RuleInfo ruleInfo = latestRules.get(ruleId);
 
-            // 处理新增和修改的规则
-            for (RuleInfo ruleInfo : changes.getAddedOrModifiedRules()) {
-                try {
-                    // 如果是修改的规则，先删除旧版本
-                    if (ruleEngine.hasRule(ruleInfo.getId())) {
-                        ruleEngine.removeRule(ruleInfo.getId());
-                        result.modifiedCount++;
-                        LOGGER.info("修改规则: {}", ruleInfo.getId());
-                    } else {
-                        result.addedCount++;
-                        LOGGER.info("新增规则: {}", ruleInfo.getId());
-                    }
-
-                    // 编译并注册新规则
-                    IRule rule = createRule(ruleInfo);
-                    if (rule != null) {
-                        List<String> factories = parseFactories(ruleInfo.getEnabledFactories());
-                        ruleEngine.registerRule(rule, factories);
-
-                        // 更新本地快照
-                        localRuleSnapshot.put(ruleInfo.getId(), ruleInfo);
-                    }
-                } catch (Exception e) {
-                    LOGGER.error("处理规则失败: {}", ruleInfo.getId(), e);
-                    result.errorCount++;
+                // 跳过无变更的规则
+                if (changeType == RuleChangeType.UNCHANGED) {
+                    continue;
                 }
+
+                // 委托给对应的策略处理
+                changeType.handle(ruleEngine, ruleInfo, ruleId, this, result);
             }
 
             LOGGER.info("规则更新完成 - 新增:{}, 修改:{}, 删除:{}, 错误:{}",
@@ -102,15 +82,15 @@ public class RuleService {
     }
 
     /**
-     * 检测规则变更
+     * 检测所有规则的变更状态
      */
-    private RuleChanges detectChanges(Map<String, RuleInfo> latestRules) {
-        RuleChanges changes = new RuleChanges();
+    private Map<String, RuleChangeType> detectAllRuleChanges(Map<String, RuleInfo> latestRules) {
+        Map<String, RuleChangeType> changes = new HashMap<>();
 
         // 检测删除的规则
         for (String localRuleId : localRuleSnapshot.keySet()) {
             if (!latestRules.containsKey(localRuleId)) {
-                changes.addDeletedRule(localRuleId);
+                changes.put(localRuleId, RuleChangeType.DELETED);
             }
         }
 
@@ -120,14 +100,31 @@ public class RuleService {
 
             if (localRule == null) {
                 // 新增的规则
-                changes.addAddedOrModifiedRule(latestRule);
+                changes.put(latestRule.getId(), RuleChangeType.NEW);
             } else if (isRuleModified(localRule, latestRule)) {
                 // 修改的规则
-                changes.addAddedOrModifiedRule(latestRule);
+                changes.put(latestRule.getId(), RuleChangeType.MODIFIED);
+            } else {
+                // 无变更的规则
+                changes.put(latestRule.getId(), RuleChangeType.UNCHANGED);
             }
         }
 
         return changes;
+    }
+
+    /**
+     * 更新本地快照（供策略调用）
+     */
+    public void updateLocalSnapshot(String ruleId, RuleInfo ruleInfo) {
+        localRuleSnapshot.put(ruleId, ruleInfo);
+    }
+
+    /**
+     * 从本地快照中删除（供策略调用）
+     */
+    public void removeFromLocalSnapshot(String ruleId) {
+        localRuleSnapshot.remove(ruleId);
     }
 
     /**
@@ -143,12 +140,12 @@ public class RuleService {
     }
     
     /**
-     * 创建规则实例
-     * 
+     * 创建规则实例（供策略调用）
+     *
      * @param ruleInfo 规则信息
      * @return 规则实例
      */
-    private IRule createRule(RuleInfo ruleInfo) {
+    public IRule createRule(RuleInfo ruleInfo) {
         try {
             // 编译规则类
             Class<?> ruleClass = DynamicCompiler.compile(
@@ -177,12 +174,12 @@ public class RuleService {
     }
     
     /**
-     * 解析车厂ID列表
-     * 
+     * 解析车厂ID列表（供策略调用）
+     *
      * @param enabledFactories 逗号分隔的车厂ID字符串
      * @return 车厂ID列表
      */
-    private List<String> parseFactories(String enabledFactories) {
+    public List<String> parseFactories(String enabledFactories) {
         if (enabledFactories == null || enabledFactories.trim().isEmpty()) {
             return null;
         }

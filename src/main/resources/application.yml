@@ -6,7 +6,7 @@ kafka:
   autoOffsetReset: latest
 
 process:
-  parallelism: 1
+  parallelism: 5
   stateRetentionMinutes: 60
   checkpointInterval: 60000
 
