@@ -79,7 +79,19 @@ public class KafkaBatteryDataDeserializationSchema implements KafkaDeserializati
                         .collect(Collectors.toList());
                 batteryData.setProbeTemperatures(temperatures);
             }
-            
+
+            // 处理最大温度（校正-40℃偏移）
+            if (jsonNode.has("maxTemperature") && !jsonNode.path("maxTemperature").isNull()) {
+                int maxTemp = jsonNode.path("maxTemperature").asInt();
+                batteryData.setMaxTemperature(maxTemp - 40);
+            }
+
+            // 处理最小温度（校正-40℃偏移）
+            if (jsonNode.has("minTemperature") && !jsonNode.path("minTemperature").isNull()) {
+                int minTemp = jsonNode.path("minTemperature").asInt();
+                batteryData.setMinTemperature(minTemp - 40);
+            }
+
             // 处理电流数据（校正-10000偏移）
             if (jsonNode.has("totalCurrent") && !jsonNode.path("totalCurrent").isNull()) {
                 int current = jsonNode.path("totalCurrent").asInt();
