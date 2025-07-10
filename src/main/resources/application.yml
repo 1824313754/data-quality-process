@@ -6,14 +6,16 @@ kafka:
   autoOffsetReset: latest
 
 process:
-  parallelism: 5
+  parallelism: 1
   stateRetentionMinutes: 60
   checkpointInterval: 60000
 
-mysql:
-  url: jdbc:mysql://10.2.96.179:3306/battery_quality?useSSL=false&serverTimezone=Asia/Shanghai
-  username: root
-  password: Battery@123
+# Doris规则库配置
+dorisRule:
+  url: jdbc:mysql://10.2.96.62:9030/battery_quality?useSSL=false&serverTimezone=Asia/Shanghai
+  username: adi_bigdata
+  password: adi_bigdata@2025
+  database: battery_quality
   maxPoolSize: 10
   minPoolSize: 2
   connectionTimeout: 30000
@@ -29,8 +31,8 @@ doris:
   conn: 10.2.96.62:8030
   user: adi_bigdata
   passwd: adi_bigdata@2025
-  database: battery_ods
-  table: error_data
+  database: battery_quality
+  table: ods_data_with_issues
   batchSize: 5000
   batchIntervalMs: 30000
   maxRetries: 2147483647

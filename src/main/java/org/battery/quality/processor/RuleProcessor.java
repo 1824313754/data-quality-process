@@ -73,7 +73,7 @@ public class RuleProcessor extends KeyedProcessFunction<String, BatteryData, Pro
         // 加载应用配置
         AppConfig appConfig = ConfigManager.getInstance().getConfig();
         // 获取规则更新间隔（秒）
-        long ruleUpdateIntervalSeconds = appConfig.getMysql().getCacheRefreshInterval();
+        long ruleUpdateIntervalSeconds = appConfig.getDorisRule().getCacheRefreshInterval();
         // 首次加载规则（全量加载）
         initialLoadRules();
         // 启动定时任务，定期增量更新规则

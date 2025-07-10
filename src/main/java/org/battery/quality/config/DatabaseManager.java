@@ -34,9 +34,9 @@ public class DatabaseManager {
     /**
      * 初始化数据源
      */
-    public void initDataSource(AppConfig.MySQLConfig config) {
+    public void initDataSource(AppConfig.DorisRuleConfig config) {
         try {
-            LOGGER.info("初始化数据库连接池: {}", config.getUrl());
+            LOGGER.info("初始化Doris数据库连接池: {}", config.getUrl());
             HikariConfig hikariConfig = new HikariConfig();
             hikariConfig.setJdbcUrl(config.getUrl());
             hikariConfig.setUsername(config.getUsername());
@@ -44,15 +44,19 @@ public class DatabaseManager {
             hikariConfig.setMaximumPoolSize(config.getMaxPoolSize());
             hikariConfig.setMinimumIdle(config.getMinPoolSize());
             hikariConfig.setConnectionTimeout(config.getConnectionTimeout());
+
+            // Doris特定配置
             hikariConfig.addDataSourceProperty("cachePrepStmts", "true");
             hikariConfig.addDataSourceProperty("prepStmtCacheSize", "250");
             hikariConfig.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
-            
+            hikariConfig.addDataSourceProperty("useServerPrepStmts", "true");
+            hikariConfig.addDataSourceProperty("rewriteBatchedStatements", "true");
+
             dataSource = new HikariDataSource(hikariConfig);
-            LOGGER.info("数据库连接池初始化成功");
+            LOGGER.info("Doris数据库连接池初始化成功");
         } catch (Exception e) {
-            LOGGER.error("初始化数据库连接池失败", e);
-            throw new RuntimeException("初始化数据库连接池失败", e);
+            LOGGER.error("初始化Doris数据库连接池失败", e);
+            throw new RuntimeException("初始化Doris数据库连接池失败", e);
         }
     }
     

@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 
 /**
  * 规则上传工具
- * 用于将规则源代码上传到MySQL数据库
+ * 用于将规则源代码上传到Doris数据库
  */
 public class RuleUploader {
     private static final Logger LOGGER = LoggerFactory.getLogger(RuleUploader.class);
@@ -92,12 +92,12 @@ public class RuleUploader {
             // 加载配置
             AppConfig appConfig = ConfigManager.getInstance().getConfig();
             
-            // 初始化数据库连接池
-            dbManager.initDataSource(appConfig.getMysql());
+            // 初始化Doris数据库连接池
+            dbManager.initDataSource(appConfig.getDorisRule());
             
-            System.out.println("数据库连接初始化成功！");
+            System.out.println("Doris数据库连接初始化成功！");
         } catch (Exception e) {
-            System.err.println("数据库连接初始化失败：" + e.getMessage());
+            System.err.println("Doris数据库连接初始化失败：" + e.getMessage());
             System.exit(1);
         }
     }

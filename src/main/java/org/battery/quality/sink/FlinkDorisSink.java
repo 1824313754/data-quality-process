@@ -69,8 +69,8 @@ public class FlinkDorisSink implements Sink {
         String feNodes = this.feNodes != null ? this.feNodes : parameterTool.get("doris.conn");
         String username = this.username != null ? this.username : parameterTool.get("doris.user");
         String password = this.password != null ? this.password : parameterTool.get("doris.passwd");
-        String database = this.database != null ? this.database : parameterTool.get("doris.database", "battery_data");
-        String tableName = this.tableName != null ? this.tableName : parameterTool.get("doris.table", "gb32960_data_with_issues");
+        String database = this.database != null ? this.database : parameterTool.get("doris.database", "battery_quality");
+        String tableName = this.tableName != null ? this.tableName : parameterTool.get("doris.table", "ods_data_with_issues");
         String tableIdentifier = database + "." + tableName;
         
         // 获取执行配置

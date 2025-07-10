@@ -36,9 +36,9 @@ public class RuleDao {
     public RuleDao() {
         dbManager = DatabaseManager.getInstance();
         
-        // 初始化数据库连接池
+        // 初始化Doris数据库连接池
         AppConfig appConfig = ConfigManager.getInstance().getConfig();
-        dbManager.initDataSource(appConfig.getMysql());
+        dbManager.initDataSource(appConfig.getDorisRule());
     }
     
     /**
@@ -64,19 +64,19 @@ public class RuleDao {
                 String enabledFactories = rs.getString("enabled_factories");
                 int status = rs.getInt("status");
                 
-                RuleInfo rule = new RuleInfo(
-                    id, 
-                    name,
-                    description,
-                    category,
-                    ruleCode,
-                    priority,
-                    sourceCode, 
-                    enabledFactories,
-                    rs.getTimestamp("create_time"),
-                    rs.getTimestamp("update_time"),
-                    status
-                );
+                RuleInfo rule = RuleInfo.builder()
+                    .id(id)
+                    .name(name)
+                    .description(description)
+                    .category(category)
+                    .ruleCode(ruleCode)
+                    .priority(priority)
+                    .sourceCode(sourceCode)
+                    .enabledFactories(enabledFactories)
+                    .createTime(rs.getTimestamp("create_time"))
+                    .updateTime(rs.getTimestamp("update_time"))
+                    .status(status)
+                    .build();
                 
                 ruleMap.put(rule.getId(), rule);
             }

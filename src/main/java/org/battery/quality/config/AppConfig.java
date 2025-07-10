@@ -16,16 +16,16 @@ public class AppConfig implements Serializable {
     
     // 处理配置
     private ProcessConfig process = new ProcessConfig();
-    
-    // MySQL配置
-    private MySQLConfig mysql = new MySQLConfig();
-    
+
+    // Doris规则库配置
+    private DorisRuleConfig dorisRule = new DorisRuleConfig();
+
     // Sink配置
     private SinkConfig sink = new SinkConfig();
-    
-    // Doris配置
+
+    // Doris数据输出配置
     private DorisConfig doris = new DorisConfig();
-    
+
     // Print配置
     private PrintConfig print = new PrintConfig();
     
@@ -48,14 +48,15 @@ public class AppConfig implements Serializable {
         configMap.put("process.stateRetentionMinutes", String.valueOf(process.getStateRetentionMinutes()));
         configMap.put("process.checkpointInterval", String.valueOf(process.getCheckpointInterval()));
         
-        // MySQL配置
-        configMap.put("mysql.url", mysql.getUrl());
-        configMap.put("mysql.username", mysql.getUsername());
-        configMap.put("mysql.password", mysql.getPassword());
-        configMap.put("mysql.maxPoolSize", String.valueOf(mysql.getMaxPoolSize()));
-        configMap.put("mysql.minPoolSize", String.valueOf(mysql.getMinPoolSize()));
-        configMap.put("mysql.connectionTimeout", String.valueOf(mysql.getConnectionTimeout()));
-        configMap.put("mysql.cacheRefreshInterval", String.valueOf(mysql.getCacheRefreshInterval()));
+        // Doris规则库配置
+        configMap.put("doris.rule.url", dorisRule.getUrl());
+        configMap.put("doris.rule.username", dorisRule.getUsername());
+        configMap.put("doris.rule.password", dorisRule.getPassword());
+        configMap.put("doris.rule.database", dorisRule.getDatabase());
+        configMap.put("doris.rule.maxPoolSize", String.valueOf(dorisRule.getMaxPoolSize()));
+        configMap.put("doris.rule.minPoolSize", String.valueOf(dorisRule.getMinPoolSize()));
+        configMap.put("doris.rule.connectionTimeout", String.valueOf(dorisRule.getConnectionTimeout()));
+        configMap.put("doris.rule.cacheRefreshInterval", String.valueOf(dorisRule.getCacheRefreshInterval()));
         
         // Sink配置
         configMap.put("sink.type", sink.getType());
@@ -105,20 +106,21 @@ public class AppConfig implements Serializable {
     }
     
     /**
-     * MySQL配置
+     * Doris规则库配置
      */
     @Data
-    public static class MySQLConfig {
-        private String url = "jdbc:mysql://localhost:3306/battery_quality?useSSL=false&serverTimezone=Asia/Shanghai";
+    public static class DorisRuleConfig {
+        private String url = "jdbc:mysql://localhost:9030/battery_quality?useSSL=false&serverTimezone=Asia/Shanghai";
         private String username = "root";
-        private String password = "password";
+        private String password = "";
+        private String database = "battery_quality";
         private int maxPoolSize = 10;
         private int minPoolSize = 2;
         private long connectionTimeout = 30000;
         // 缓存刷新间隔（秒）
         private long cacheRefreshInterval = 10;
     }
-    
+
     /**
      * Sink配置
      */
@@ -136,14 +138,14 @@ public class AppConfig implements Serializable {
         private String conn = "localhost:8030";
         private String user = "root";
         private String passwd = "";
-        private String database = "battery_data";
-        private String table = "gb32960_data";
+        private String database = "battery_quality";
+        private String table = "ods_data_with_issues";
         private int batchSize = 1000;
         private int batchIntervalMs = 2000;
         private int maxRetries = Integer.MAX_VALUE;
         private long maxBatchBytes = 1024 * 1024 * 1024L; // 1GB
     }
-    
+
     /**
      * Print配置
      */
@@ -152,4 +154,4 @@ public class AppConfig implements Serializable {
         private String identifier = "质量检查结果";
         private boolean verbose = false;
     }
-} 
+}

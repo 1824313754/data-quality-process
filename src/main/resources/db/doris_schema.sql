@@ -1,7 +1,62 @@
 -- Doris数据库表结构定义
+-- 所有表都在battery_quality库下
+
+-- 创建数据库
+CREATE DATABASE IF NOT EXISTS `battery_quality`;
+USE `battery_quality`;
+
+-- 规则配置表
+CREATE TABLE IF NOT EXISTS `battery_quality`.`rule_class` (
+  `id` varchar(100) NOT NULL COMMENT "规则ID",
+  `name` varchar(100) NOT NULL COMMENT "规则名称",
+  `description` varchar(255) NOT NULL COMMENT "规则描述",
+  `category` varchar(50) NOT NULL COMMENT "规则分类",
+  `rule_code` int NOT NULL COMMENT "异常编码",
+  `priority` int NOT NULL COMMENT "规则优先级",
+  `source_code` text NOT NULL COMMENT "规则源代码",
+  `enabled_factories` varchar(1000) NOT NULL COMMENT "启用的车厂ID列表，用逗号分隔，0表示所有车厂",
+  `create_time` datetime NOT NULL COMMENT "创建时间",
+  `update_time` datetime NOT NULL COMMENT "更新时间",
+  `status` tinyint NOT NULL COMMENT "规则状态：1-启用，0-禁用"
+) ENGINE=OLAP
+DUPLICATE KEY(`id`)
+DISTRIBUTED BY HASH(`id`) BUCKETS 10
+PROPERTIES (
+"replication_allocation" = "tag.location.offline: 1",
+"storage_medium" = "hdd",
+"storage_format" = "V2"
+);
+
+-- 车厂ID参考：
+-- 0: 默认所有车厂
+-- 1: 五菱
+-- 2: 江淮
+-- 4: 瑞驰
+-- 5: 吉利
+-- 6: 奇瑞
+-- 7: 奇瑞商用车
+-- 13: 移动充电车
+-- 14: 吉智
+-- 15: 合众
+-- 16: 广通
+-- 17: 江淮商用车
+-- 18: 吉利商用车
+-- 19: 上汽大通
+-- 20: 安凯
+-- 21: 南京开沃
+-- 22: 绿色慧联
+-- 23: 电动屋
+-- 24: 小康
+-- 25: 三一
+-- 26: 奇瑞商用车
+-- 27: 南京建康
+-- 28: 太和宇通
+-- 29: 长江重卡
+-- 30: 吉利重卡
+-- 31: 凯翼
 
 -- 电池数据统计表
-CREATE TABLE IF NOT EXISTS `normal_data_stats` (
+CREATE TABLE IF NOT EXISTS `battery_quality`.`normal_data_stats` (
   `vin` varchar(255) NOT NULL COMMENT "车辆VIN码",
   `dayOfYear` date NOT NULL COMMENT "数据日期",
   `hour` smallint NULL COMMENT "小时(0-23)",
@@ -44,7 +99,7 @@ PROPERTIES (
 );
 
 -- 电池数据及质量问题表
-CREATE TABLE IF NOT EXISTS `gb32960_data_with_issues` (
+CREATE TABLE IF NOT EXISTS `battery_quality`.`ods_data_with_issues` (
   `vin` varchar(255) NOT NULL COMMENT "车辆VIN码",
   `vehicleFactory` varchar(255) NULL COMMENT "车辆厂商代码",
   `time` datetime NOT NULL COMMENT "数据时间",
