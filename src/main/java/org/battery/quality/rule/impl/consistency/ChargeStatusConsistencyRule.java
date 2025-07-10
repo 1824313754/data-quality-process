@@ -30,12 +30,12 @@ public class ChargeStatusConsistencyRule extends AbstractRule {
         }
         
         // 充电状态：1-停车充电，2-行驶充电，3-未充电状态，4-充电完成
-        if (current > 0 && !(chargeStatus == 1 || chargeStatus == 2)) {
+        if (current < 0 && !(chargeStatus == 1 || chargeStatus == 2)) {
             return singleIssue(data, 
                     String.format("电流为%d（充电），但充电状态为%d", current, chargeStatus));
         }
         
-        if (current < 0 && !(chargeStatus == 3 || chargeStatus == 4)) {
+        if (current > 0 && !(chargeStatus == 3 || chargeStatus == 4)) {
             return singleIssue(data, 
                     String.format("电流为%d（放电），但充电状态为%d", current, chargeStatus));
         }

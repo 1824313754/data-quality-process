@@ -28,7 +28,7 @@ public class TotalVoltageValidityRule extends AbstractRule {
         }
 
         // 总电压取值范围: [0, 1000V] 根据指标表修正
-        if (voltage < 0 || voltage > 1000) {
+        if (voltage < 0 || voltage > 10000) {
             return singleIssue(data,
                     String.format("总电压: %dV", voltage));
         }
