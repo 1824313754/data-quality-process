@@ -43,16 +43,34 @@ public class KafkaBatteryDataDeserializationSchema implements KafkaDeserializati
             // 解析JSON以获取ctime所需的字段
             JsonNode jsonNode = OBJECT_MAPPER.readTree(message);
             
+            // 获取原始时间字段
+            int rawYear = jsonNode.path("year").asInt();
+            int rawMonth = jsonNode.path("month").asInt();
+            int rawDay = jsonNode.path("day").asInt();
+            int rawHours = jsonNode.path("hours").asInt();
+            int rawMinutes = jsonNode.path("minutes").asInt();
+            int rawSeconds = jsonNode.path("seconds").asInt();
+
+            // 保存原始时间字段到BatteryData（用于时间有效性检查）
+            batteryData.setRawYear(rawYear);
+            batteryData.setRawMonth(rawMonth);
+            batteryData.setRawDay(rawDay);
+            batteryData.setRawHours(rawHours);
+            batteryData.setRawMinutes(rawMinutes);
+            batteryData.setRawSeconds(rawSeconds);
+
             // 设置ctime字段，从JSON中获取时间相关字段并格式化
-            int hours = jsonNode.path("hours").asInt();
-            int seconds = jsonNode.path("seconds").asInt();
-            int month = jsonNode.path("month").asInt();
-            int year = 2000 + jsonNode.path("year").asInt(); // 25 -> 2025
-            int minutes = jsonNode.path("minutes").asInt();
-            int day = jsonNode.path("day").asInt();
-            
-            LocalDateTime ctimeDateTime = LocalDateTime.of(year, month, day, hours, minutes, seconds);
-            batteryData.setCtime(ctimeDateTime.format(DATE_FORMATTER));
+            int year = 2000 + rawYear; // 25 -> 2025
+
+            try {
+                LocalDateTime ctimeDateTime = LocalDateTime.of(year, rawMonth, rawDay, rawHours, rawMinutes, rawSeconds);
+                batteryData.setCtime(ctimeDateTime.format(DATE_FORMATTER));
+            } catch (Exception e) {
+                // 如果时间字段无效，设置为当前时间
+                log.warn("无效的时间字段: year={}, month={}, day={}, hours={}, minutes={}, seconds={}",
+                        year, rawMonth, rawDay, rawHours, rawMinutes, rawSeconds);
+                batteryData.setCtime(LocalDateTime.now().format(DATE_FORMATTER));
+            }
             
             // 处理温度数据（校正-40℃偏移）
             if (jsonNode.has("probeTemperatures") && jsonNode.path("probeTemperatures").isArray()) {

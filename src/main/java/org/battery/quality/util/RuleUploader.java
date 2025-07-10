@@ -11,10 +11,13 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -170,35 +173,89 @@ public class RuleUploader {
         }
         
         try {
-            File[] files = dir.listFiles((d, name) -> name.endsWith(".java"));
-            if (files == null || files.length == 0) {
+            // 递归查找所有Java文件
+            List<File> javaFiles = findJavaFilesRecursively(dir);
+            if (javaFiles.isEmpty()) {
                 System.out.println("目录中没有找到Java文件。");
                 return;
             }
-            
-            System.out.println("\n找到 " + files.length + " 个Java文件，准备上传...");
-            
+
+            System.out.println("\n递归查找到 " + javaFiles.size() + " 个Java文件，准备上传...");
+
             int successCount = 0;
-            for (File file : files) {
+            for (File file : javaFiles) {
                 try {
                     String sourceCode = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
                     RuleInfo ruleInfo = parseRuleInfo(sourceCode, file.getName());
-                    
+
                     // 上传规则
                     uploadRule(ruleInfo, enabledFactories, sourceCode);
-                    System.out.println("上传成功: " + file.getName());
+                    System.out.println("上传成功: " + getRelativePath(dir, file));
                     successCount++;
                 } catch (Exception e) {
-                    System.err.println("上传失败: " + file.getName() + " - " + e.getMessage());
+                    System.err.println("上传失败: " + getRelativePath(dir, file) + " - " + e.getMessage());
                 }
             }
-            
-            System.out.println("\n批量上传完成！成功：" + successCount + "，失败：" + (files.length - successCount));
+
+            System.out.println("\n批量上传完成！成功：" + successCount + "，失败：" + (javaFiles.size() - successCount));
         } catch (Exception e) {
             System.err.println("批量上传失败：" + e.getMessage());
         }
     }
-    
+
+    /**
+     * 递归查找目录下所有Java文件
+     * @param dir 根目录
+     * @return Java文件列表
+     */
+    private static List<File> findJavaFilesRecursively(File dir) {
+        List<File> javaFiles = new ArrayList<>();
+        findJavaFilesRecursively(dir, javaFiles);
+        return javaFiles;
+    }
+
+    /**
+     * 递归查找Java文件的内部实现
+     * @param dir 当前目录
+     * @param javaFiles 结果列表
+     */
+    private static void findJavaFilesRecursively(File dir, List<File> javaFiles) {
+        if (dir == null || !dir.exists() || !dir.isDirectory()) {
+            return;
+        }
+
+        File[] files = dir.listFiles();
+        if (files == null) {
+            return;
+        }
+
+        for (File file : files) {
+            if (file.isDirectory()) {
+                // 递归查找子目录
+                findJavaFilesRecursively(file, javaFiles);
+            } else if (file.isFile() && file.getName().endsWith(".java")) {
+                // 添加Java文件
+                javaFiles.add(file);
+            }
+        }
+    }
+
+    /**
+     * 获取文件相对于根目录的路径
+     * @param rootDir 根目录
+     * @param file 文件
+     * @return 相对路径
+     */
+    private static String getRelativePath(File rootDir, File file) {
+        try {
+            Path rootPath = rootDir.toPath().toAbsolutePath();
+            Path filePath = file.toPath().toAbsolutePath();
+            return rootPath.relativize(filePath).toString();
+        } catch (Exception e) {
+            return file.getName();
+        }
+    }
+
     /**
      * 解析规则信息
      */

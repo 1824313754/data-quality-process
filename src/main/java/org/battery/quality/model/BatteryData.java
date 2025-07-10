@@ -76,4 +76,12 @@ public class BatteryData implements Serializable {
     // 其他信息
     private String customField;             // 自定义字段
     private String ctime;                   // 处理时间，格式为"yyyy-MM-dd HH:mm:ss"
+
+    // 原始时间字段（用于时间有效性检查）
+    private Integer rawYear;                // 原始年份字段
+    private Integer rawMonth;               // 原始月份字段
+    private Integer rawDay;                 // 原始日期字段
+    private Integer rawHours;               // 原始小时字段
+    private Integer rawMinutes;             // 原始分钟字段
+    private Integer rawSeconds;             // 原始秒数字段
 } 
