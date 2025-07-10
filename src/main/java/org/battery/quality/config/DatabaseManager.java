@@ -32,6 +32,15 @@ public class DatabaseManager {
     }
     
     /**
+     * 检查数据源是否已初始化
+     * 
+     * @return 数据源是否已初始化
+     */
+    public boolean isDataSourceInitialized() {
+        return dataSource != null;
+    }
+    
+    /**
      * 初始化数据源
      */
     public void initDataSource(AppConfig.DorisRuleConfig config) {
@@ -77,6 +86,7 @@ public class DatabaseManager {
         if (dataSource instanceof HikariDataSource) {
             LOGGER.info("关闭数据库连接池");
             ((HikariDataSource) dataSource).close();
+            dataSource = null;
         }
     }
 } 
